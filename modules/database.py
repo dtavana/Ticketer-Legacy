@@ -54,18 +54,13 @@ class Database:
                                     value=f"`{key}`|`{value}`")
                     await ctx.send(embed=embed)
             except:
-                await ctx.send(f"Your query returned `None` or was an invalid query.")
+                await self.bot.sendErorr(ctx, f"Your query returned `None` or was an invalid query.")
         else:
             try:
                 await self.bot.db.execute(query)
-                embed = discord.Embed(
-                    title=f"Success \U00002705", colour=discord.Colour(0x32CD32))
-                embed.set_footer(text="FortSnipe | TwiSt#7777")
-                embed.add_field(
-                    name="Data:", value=f"The command was executed succesfully")
-                await ctx.send(embed=embed)
+                await self.bot.sendSuccess(ctx, f"The command was executed succesfully.")
             except:
-                await ctx.send(f"Your query was invalid query.")
+                await self.bot.sendErorr(ctx, f"Your query was invalid.")
 
 
 def setup(bot):

@@ -25,6 +25,7 @@ class Ticketer(commands.AutoShardedBot):
         try:
             res = await self.db.fetchrow("SELECT prefix FROM settings WHERE serverid = $1;", ctx.guild.id)
             res = res['prefix']
+            print(res)
             return res
         except:
             return['-']
@@ -44,6 +45,22 @@ class Ticketer(commands.AutoShardedBot):
         res = await self.db.fetchrow("SELECT premium FROM servers WHERE serverid = $1;", guildid)
         res = res['premium']
         return res
+    
+    async def sendSuccess(self, target, valString):
+        embed = discord.Embed(
+            title=f"Success \U00002705", colour=discord.Colour(0x32CD32))
+        embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+        embed.add_field(
+            name="Data:", value=valString)
+        await target.send(embed=embed)
+    
+    async def sendError(self, target, valString):
+        embed = discord.Embed(
+            title=f"Error \U0000274c", colour=discord.Colour(0xf44b42))
+        embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+        embed.add_field(
+            name="Data:", value=valString)
+        await target.send(embed=embed)
 
     def run(self):
         # self.remove_command("help")
@@ -71,7 +88,7 @@ class Ticketer(commands.AutoShardedBot):
         await self.db.execute("CREATE TABLE IF NOT EXISTS servers(serverid bigint PRIMARY KEY, currentticket smallint DEFAULT 1, premium boolean DEFAULT FALSE);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', ticketchannel bigint DEFAULT 0, ticketcategory bigint DEFAULT 0, role bigint DEFAULT 0, welcomemessage varchar DEFAULT '');")
         await self.db.execute("CREATE TABLE IF NOT EXISTS premium(userid bigint PRIMARY KEY, credits smallint);")
-
+  
         # Error logging
         async def on_command_error(ctx, error):
             embed = discord.Embed(

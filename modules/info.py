@@ -12,15 +12,22 @@ import psutil
 class Information:
     def __init__(self, bot):
         self.bot = bot
-
+    
     async def on_member_join(self, member):
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"Helping {len(self.bot.users)} users"))
         ticketchan = await self.bot.get_ticketchan(member.guild.id)
         prefix = await self.bot.getPrefix(member.guild.id)
         embed = discord.Embed(
-            title=f"Ticketer Support", colour=discord.Colour(0x32CD32))
+            title=f"Ticketer", colour=discord.Colour(0x32CD32))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        embed.add_field(name=f"Welcome to {member.guild}!", value=f"For support, please navigate to {ticketchan} and type `{prefix}new SUBJECT` and replace subject with a brief topic. You may then post any info in the created channel.\n\n")
+        if not ticketchan:
+            embed.add_field(name=f"Welcome to {member.guild}!", value=f"For support, type `{prefix}new SUBJECT` and replace subject with a brief topic. You may then post any info in the created channel.\n\n")
+        else:
+            embed.add_field(name=f"Welcome to {member.guild}!",value=f"For support, please navigate to {ticketchan} and type `{prefix}new SUBJECT` and replace subject with a brief topic. You may then post any info in the created channel.\n\n")
         await member.send(embed=embed)
+    
+    async def on_member_remove(self, member):
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"Helping {len(self.bot.users)} users"))
 
     async def on_guild_join(self, guild):
         await self.bot.db.execute("INSERT INTO servers (serverid) VALUES ($1);", guild.id)
@@ -29,10 +36,10 @@ class Information:
         prefix = await self.bot.getPrefix(guild.id)
         
         embed = discord.Embed(
-            title=f"Ticketer Support", colour=discord.Colour(0x32CD32))
+            title=f"Ticketer", colour=discord.Colour(0x32CD32))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         embed.add_field(
-            name="Thank you for inviting me to your server!", value=f"My prefix is `{prefix}`. To start, please run `{prefix}setup`. You may view all of my current features using `{prefix}features`. You may upgrade these features by paying a one-time fee of **$5** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
+            name=f"Thank you for inviting me to {guild}!", value=f"My prefix is `{prefix}`. To start, please run `{prefix}setup`. You may view all of my current features using `{prefix}features`. You may upgrade these features by paying a one-time fee of **$5** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
         await owner.send(embed=embed)
         await owner.send("https://discord.gg/uzygVc2")
     

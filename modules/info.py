@@ -47,6 +47,16 @@ class Information:
         await self.bot.db.execute("DELETE FROM servers WHERE serverid = $1;", guild.id)
         await self.bot.db.execute("DELETE FROM settings WHERE serverid = $1;", guild.id)
 
+    @commands.command()
+    async def support(self, ctx):
+        await ctx.send("Please join the official Ticketer support server for more detailed support.")
+        await ctx.send("https://discord.gg/uzygVc2")
+    
+    @commands.command()
+    async def upgrade(self, ctx):
+        await ctx.send("For only **$5**, you can upgrade to have so many more features and support Ticketer at the same time! Please join the offical support server for more information.")
+        await ctx.send("https://discord.gg/uzygVc2")
+    
     @commands.command(aliases=['statistics'])
     @commands.is_owner()
     async def stats(self, ctx):

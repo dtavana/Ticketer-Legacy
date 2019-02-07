@@ -38,7 +38,7 @@ class Ticketer(commands.AutoShardedBot):
         res = await self.db.fetchrow("SELECT ticketchannel FROM settings WHERE serverid = $1;", guildid)
         res = res['ticketchannel']
         if res == 0:
-            res = "Not yet setup"
+            res = False
         return res
 
     async def get_premium(self, guildid):

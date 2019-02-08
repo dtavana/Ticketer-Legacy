@@ -61,10 +61,13 @@ class Credits:
     @commands.cooldown(1, 60, BucketType.user)
     @commands.command()
     async def credits(self, ctx):
-        credit = await self.bot.db.fetchrow("SELECT credits from premium WHERE userid = $1;", ctx.author.id)
-        credit = credit['credits']
         prefix = await self.bot.getPrefix(ctx.guild.id)
-        await self.bot.sendSuccess(ctx, f"{ctx.author.mention} has {credit} credit(s).\n\n Use `{prefix}redeem` to redeem your premium credit(s).")
+        try:
+            credit = await self.bot.db.fetchrow("SELECT credits from premium WHERE userid = $1;", ctx.author.id)
+            credit = credit['credits']
+            await self.bot.sendSuccess(ctx, f"{ctx.author.mention} has {credit} credit(s).\n\n Use `{prefix}redeem` to redeem your premium credit(s).")
+        except:
+            await self.bot.sendError(ctx, f"{ctx.author.mention} has no credit(s).\n\n Use `{prefix}upgrade` to learn how to upgrade.")
     
     @commands.check(premium_admins)
     @commands.command(hidden=True)

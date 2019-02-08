@@ -29,8 +29,7 @@ class Settings:
                 messagestr = message.content[3:-1]
                 role = guild.get_role(int(messagestr))
                 return message.author == ctx.author and role is not None
-            except Exception as e:
-                print(e)
+            except:
                 return False
         await ctx.send(f"Lets run through the setup for **{ctx.author.guild}**.")
         isPremium = await self.bot.get_premium(guild.id)
@@ -38,6 +37,10 @@ class Settings:
             title=f"Setup Info \U0000270d", colour=discord.Colour(0xFFA500))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         # ---GET CATEGORY FOR TICKETS
+        try:
+            await self.bot.get_channel(await self.bot.get_ticketcategory(ctx.guild.id)).delete(reason="Rerunning setup")
+        except:
+            pass
         categorychan = await ctx.guild.create_category("TicketerCategory")
         await ctx.send("I have created a category for tickets to be placed under, feel free to rename and move it but do not delete it. If you do, run this setup again.")
         if(isPremium):
@@ -45,6 +48,10 @@ class Settings:
             await ctx.send("Please tag the channel you would like to set as the channel to create tickets.")
             ticketchan = await self.bot.wait_for('message', check=validchannelcheck, timeout=30)
             ticketchanint = int(ticketchan.content[2:-1])
+
+            # ---GET TICKET PREFIX
+            await ctx.send("Please enter what you would like as the ticket prefix. **NOTE**: Must be 10 characters or less!")
+            ticketprefix = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author and len(i.content) <= 10, timeout=30)
 
             # ---GET WELCOME MESSAGE FOR CHANNEL
             await ctx.send("Please enter what you would like the welcome message to be for new tickets. **NOTE**: Must be 100 characters or less!")
@@ -63,6 +70,8 @@ class Settings:
 
             embed.add_field(name="Create Ticket Channel:",
                             value=f"{ticketchan.content}")
+            embed.add_field(name="Ticket Prefix:",
+                            value=f"`{ticketprefix.content}`")
             embed.add_field(name="Welcome Message:",
                             value=f"`{welcomemessage.content}`")
             embed.add_field(name="Ticketer Admin Role:",
@@ -82,7 +91,7 @@ class Settings:
             if reaction.emoji != "\U0001f44d":
                 await ctx.send("Command Cancelled")
                 return
-            await self.bot.db.execute("UPDATE settings SET ticketchannel = $1, role = $2, welcomemessage = $3, ticketcategory = $4, prefix = $5 WHERE serverid = $6;", ticketchanint, roleint, welcomemessage.content, categorychan.id, prefix.content, guild.id)
+            await self.bot.db.execute("UPDATE settings SET ticketchannel = $1, role = $2, welcomemessage = $3, ticketcategory = $4, prefix = $5, ticketprefix = $6 WHERE serverid = $7;", ticketchanint, roleint, welcomemessage.content, categorychan.id, prefix.content, ticketprefix.content, guild.id)
         else:
             await self.bot.db.execute("UPDATE settings SET ticketcategory = $1 WHERE serverid = $2;", categorychan.id, guild.id)
         await self.bot.sendSuccess(ctx, f"The setup has completed.")
@@ -109,8 +118,7 @@ class Settings:
         if reaction.emoji != "\U0001f44d":
             await ctx.send("Command Cancelled")
             return
-        ticketcategory = await self.bot.db.fetchrow("SELECT ticketcategory FROM settings WHERE serverid = $1;", ctx.guild.id)
-        ticketcategory = ticketcategory['ticketcategory']
+        ticketcategory = await self.bot.get_ticketcategory(ctx.guild.id)
         await self.bot.get_channel(ticketcategory).delete(reason="Clearing Ticketer settings.")
         await self.bot.db.execute(
             "DELETE FROM settings WHERE serverid = $1;", ctx.guild.id)

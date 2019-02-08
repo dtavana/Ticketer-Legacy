@@ -13,7 +13,8 @@ extensions = [
     'modules.info',
     'modules.settings',
     'modules.database',
-    'modules.credits'
+    'modules.credits',
+    'modules.tickets'
 ]
 
 
@@ -25,7 +26,6 @@ class Ticketer(commands.AutoShardedBot):
         try:
             res = await self.db.fetchrow("SELECT prefix FROM settings WHERE serverid = $1;", ctx.guild.id)
             res = res['prefix']
-            print(res)
             return res
         except:
             return['-']
@@ -34,6 +34,19 @@ class Ticketer(commands.AutoShardedBot):
         res = await self.db.fetchrow("SELECT prefix FROM settings WHERE serverid = $1;", guildid)
         return res['prefix']
 
+    async def get_currentticket(self, guildid):
+        res = await self.db.fetchrow("SELECT currentticket FROM servers WHERE serverid = $1;", guildid)
+        return res['currentticket']
+    
+    async def get_ticketprefix(self, guildid):
+        res = await self.db.fetchrow("SELECT ticketprefix FROM settings WHERE serverid = $1;", guildid)
+        return res['ticketprefix']
+    
+    async def get_ticketcategory(self, guildid):
+        res = await self.db.fetchrow("SELECT ticketcategory FROM settings WHERE serverid = $1;", guildid)
+        res = res['ticketcategory']
+        return res
+    
     async def get_ticketchan(self, guildid):
         res = await self.db.fetchrow("SELECT ticketchannel FROM settings WHERE serverid = $1;", guildid)
         res = res['ticketchannel']
@@ -78,7 +91,7 @@ class Ticketer(commands.AutoShardedBot):
         print(f"Logged in as: {self.user}")
         print(f"Total Servers: {len(self.guilds)}")
         print(f"Total Cogs: {len(self.cogs)}")
-        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"Helping {len(self.users)} members"))
+        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"Helping {len(self.users)} users"))
 
         credentials = {"user": cfg.ticketeruser, "password": cfg.ticketerpass,
                        "database": cfg.ticketerdb, "host": cfg.ticketerhost, "port": cfg.ticketerport}
@@ -86,7 +99,7 @@ class Ticketer(commands.AutoShardedBot):
 
         # Example create table code, you'll probably change it to suit you
         await self.db.execute("CREATE TABLE IF NOT EXISTS servers(serverid bigint PRIMARY KEY, currentticket smallint DEFAULT 1, premium boolean DEFAULT FALSE);")
-        await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', ticketchannel bigint DEFAULT 0, ticketcategory bigint DEFAULT 0, role bigint DEFAULT 0, welcomemessage varchar DEFAULT '');")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', ticketchannel bigint DEFAULT 0, ticketcategory bigint DEFAULT 0, ticketprefix varchar DEFAULT 'ticket', role bigint DEFAULT 0, welcomemessage varchar DEFAULT '');")
         await self.db.execute("CREATE TABLE IF NOT EXISTS premium(userid bigint PRIMARY KEY, credits smallint);")
   
         # Error logging

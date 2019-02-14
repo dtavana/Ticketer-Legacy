@@ -66,6 +66,10 @@ class Settings:
             role = await self.bot.wait_for('message', check=validrolecheck, timeout=30)
             roleint = int(role.content[3:-1])
 
+            categoryoverwrites = [(ctx.guild.default_role, send_messages=False), (ctx.guild.default_role, read_messages=False)]
+            categorychan = await ctx.guild.create_category("TicketerCategory", overwrites=categoryoverwrites)
+            await ctx.send("I have created a category for tickets to be placed under, feel free to rename and move it but do not delete it. If you do, run this setup again.")
+
             await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
 
             embed.add_field(name="Create Ticket Channel:",

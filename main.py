@@ -33,6 +33,13 @@ class Ticketer(commands.AutoShardedBot):
     async def getPrefix(self, guildid):
         res = await self.db.fetchrow("SELECT prefix FROM settings WHERE serverid = $1;", guildid)
         return res['prefix']
+    
+    async def get_welcomemessage(self, guildid):
+        res = await self.db.fetchrow("SELECT welcomemessage FROM settings WHERE serverid = $1;", guildid)
+        res = res['welcomemessage']
+        if res == "":
+            return "Thank you for opening a new ticket! Administration will be with you shortly."
+        return res
 
     async def get_currentticket(self, guildid):
         res = await self.db.fetchrow("SELECT currentticket FROM servers WHERE serverid = $1;", guildid)
@@ -70,6 +77,14 @@ class Ticketer(commands.AutoShardedBot):
     async def sendError(self, target, valString):
         embed = discord.Embed(
             title=f"Error \U0000274c", colour=discord.Colour(0xf44b42))
+        embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+        embed.add_field(
+            name="Data:", value=valString)
+        await target.send(embed=embed)
+    
+    async def newTicket(self, target, valString):
+        embed = discord.Embed(
+            title=f"New Ticket \U00002705", colour=discord.Colour(0x32CD32))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         embed.add_field(
             name="Data:", value=valString)

@@ -24,6 +24,14 @@ class Settings:
                 return message.author == ctx.author and channel is not None
             except:
                 return False
+        
+        def amountcheck(message):
+            try:
+                intval = int(message.content)
+                return message.author == ctx.author and intval is not None
+            except:
+                return False
+
         def validrolecheck(message):
             try:
                 messagestr = message.content[3:-1]
@@ -57,6 +65,11 @@ class Settings:
             await ctx.send("Please enter what you would like the welcome message to be for new tickets. **NOTE**: Must be 100 characters or less!")
             welcomemessage = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author and len(i.content) <= 100, timeout=30)
 
+            # ---GET TICKET AMOUNT
+            await ctx.send("Please enter the max amount of tickets a user may have at a time. Use -1 for unlimited. **NOTE**: Must be an actual integer.")
+            ticketcount = await self.bot.wait_for('message', check=amountcheck, timeout=30)
+            ticketcountint = int(ticketcount)
+
             # ---GET PREFIX
             await ctx.send("Please enter youre desired prefix **NOTE**: Must be less than 5 characters!")
             prefix = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author and len(i.content) <= 5, timeout=30)
@@ -66,8 +79,11 @@ class Settings:
             role = await self.bot.wait_for('message', check=validrolecheck, timeout=30)
             roleint = int(role.content[3:-1])
 
-            categoryoverwrites = [(ctx.guild.default_role, send_messages=False), (ctx.guild.default_role, read_messages=False)]
-            categorychan = await ctx.guild.create_category("TicketerCategory", overwrites=categoryoverwrites)
+            overwrites = {
+                ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False)
+            }
+            categorychan = await ctx.guild.create_category("TicketerCategory", overwrites=overwrites)
             await ctx.send("I have created a category for tickets to be placed under, feel free to rename and move it but do not delete it. If you do, run this setup again.")
 
             await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
@@ -76,6 +92,8 @@ class Settings:
                             value=f"{ticketchan.content}")
             embed.add_field(name="Ticket Prefix:",
                             value=f"`{ticketprefix.content}`")
+            embed.add_field(name="Ticket Count:",
+                            value=f"`{ticketcountint}`")
             embed.add_field(name="Welcome Message:",
                             value=f"`{welcomemessage.content}`")
             embed.add_field(name="Ticketer Admin Role:",
@@ -95,7 +113,7 @@ class Settings:
             if reaction.emoji != "\U0001f44d":
                 await ctx.send("Command Cancelled")
                 return
-            await self.bot.db.execute("UPDATE settings SET ticketchannel = $1, role = $2, welcomemessage = $3, ticketcategory = $4, prefix = $5, ticketprefix = $6 WHERE serverid = $7;", ticketchanint, roleint, welcomemessage.content, categorychan.id, prefix.content, ticketprefix.content, guild.id)
+            await self.bot.db.execute("UPDATE settings SET ticketchannel = $1, role = $2, welcomemessage = $3, ticketcategory = $4, prefix = $5, ticketprefix = $6, ticketcount = $7 WHERE serverid = $8;", ticketchanint, roleint, welcomemessage.content, categorychan.id, prefix.content, ticketprefix.content, ticketcountint, guild.id)
         else:
             await self.bot.db.execute("UPDATE settings SET ticketcategory = $1 WHERE serverid = $2;", categorychan.id, guild.id)
         await self.bot.sendSuccess(ctx, f"The setup has completed.")

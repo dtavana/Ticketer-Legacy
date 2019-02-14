@@ -45,6 +45,9 @@ class Ticketer(commands.AutoShardedBot):
         res = await self.db.fetchrow("SELECT currentticket FROM servers WHERE serverid = $1;", guildid)
         return res['currentticket']
     
+    async def increment_ticket(self, guildid):
+        await self.db.execute("UPDATE servers SET currentticket = currentticket + 1 WHERE serverid = $1;", guildid)
+    
     async def get_ticketprefix(self, guildid):
         res = await self.db.fetchrow("SELECT ticketprefix FROM settings WHERE serverid = $1;", guildid)
         return res['ticketprefix']
@@ -82,12 +85,12 @@ class Ticketer(commands.AutoShardedBot):
             name="Data:", value=valString)
         await target.send(embed=embed)
     
-    async def newTicket(self, target, valString):
+    async def newTicket(self, target, subject, welcomemessage):
         embed = discord.Embed(
-            title=f"New Ticket \U00002705", colour=discord.Colour(0x32CD32))
+            title=f"New Ticket \U00002705", colour=discord.Colour(0x32CD32), description=welcomemessage)
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         embed.add_field(
-            name="Data:", value=valString)
+            name="Subject:", value=subject)
         await target.send(embed=embed)
 
     def run(self):
@@ -114,8 +117,9 @@ class Ticketer(commands.AutoShardedBot):
 
         # Example create table code, you'll probably change it to suit you
         await self.db.execute("CREATE TABLE IF NOT EXISTS servers(serverid bigint PRIMARY KEY, currentticket smallint DEFAULT 1, premium boolean DEFAULT FALSE);")
-        await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', ticketchannel bigint DEFAULT 0, ticketcategory bigint DEFAULT 0, ticketprefix varchar DEFAULT 'ticket', role bigint DEFAULT 0, welcomemessage varchar DEFAULT '');")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', ticketchannel bigint DEFAULT 0, ticketcategory bigint DEFAULT 0, ticketprefix varchar DEFAULT 'ticket', role bigint DEFAULT 0, ticketcount smallint DEFAULT 3, welcomemessage varchar DEFAULT '');")
         await self.db.execute("CREATE TABLE IF NOT EXISTS premium(userid bigint PRIMARY KEY, credits smallint);")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS tickets(userid bigint, ticketid bigint);")
   
         # Error logging
         async def on_command_error(ctx, error):

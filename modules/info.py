@@ -2,6 +2,7 @@ import discord
 import asyncio
 from discord.ext import commands
 import traceback
+import sys
 
 #Misc. Modules
 import datetime
@@ -88,7 +89,6 @@ class Information:
         e.add_field(name="PC Stats", value=f"**Memory:** {int(p.memory_info()[0]/1024/1024)}mb ({memory_percent}%)\n"
                     f"**CPU:** {psutil.cpu_percent()}%", inline=False)
         await ctx.send(embed=e)
-
 
 def setup(bot):
     bot.add_cog(Information(bot))

@@ -4,6 +4,7 @@ import asyncio
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
 import traceback
+import sys
 
 # Misc. Modules
 import datetime

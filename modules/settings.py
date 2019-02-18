@@ -2,6 +2,7 @@ import discord
 import asyncio
 from discord.ext import commands
 import traceback
+import sys
 
 #Misc. Modules
 import datetime
@@ -31,26 +32,37 @@ class Settings:
                 return message.author == ctx.author and intval is not None
             except:
                 return False
-
-        def validrolecheck(message):
-            try:
-                messagestr = message.content[3:-1]
-                role = guild.get_role(int(messagestr))
-                return message.author == ctx.author and role is not None
-            except:
-                return False
+        
         await ctx.send(f"Lets run through the setup for **{ctx.author.guild}**.")
+        
+        try:
+            ticketcategory = await self.bot.get_ticketcategory(ctx.guild.id)
+            role = await self.bot.get_role(ctx.guild.id)
+            await ctx.guild.get_role(role).delete(reason="Clearing Ticketer settings.")
+            await self.bot.get_channel(ticketcategory).delete(reason="Clearing Ticketer settings.")
+            await self.bot.db.execute(
+                "DELETE FROM settings WHERE serverid = $1;", ctx.guild.id)
+            await self.bot.db.execute(
+                "INSERT INTO settings (serverid) VALUES ($1);", ctx.guild.id)
+        except Exception as e:
+            print(e)
+            pass
+        
         isPremium = await self.bot.get_premium(guild.id)
         embed = discord.Embed(
             title=f"Setup Info \U0000270d", colour=discord.Colour(0xFFA500))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        # ---GET CATEGORY FOR TICKETS
-        try:
-            await self.bot.get_channel(await self.bot.get_ticketcategory(ctx.guild.id)).delete(reason="Rerunning setup")
-        except:
-            pass
-        categorychan = await ctx.guild.create_category("TicketerCategory")
+        role = await ctx.guild.create_role(name="Support Team")
+        overwrites = {
+            ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False),
+            role: discord.PermissionOverwrite(send_messages=True),
+            role: discord.PermissionOverwrite(send_messages=True)
+        }
+        categorychan = await ctx.guild.create_category("TicketerCategory", overwrites=overwrites)
+        
         await ctx.send("I have created a category for tickets to be placed under, feel free to rename and move it but do not delete it. If you do, run this setup again.")
+        
         if(isPremium):
             # ---GET CHANNEL FOR TICKETS
             await ctx.send("Please tag the channel you would like to set as the channel to create tickets.")
@@ -75,9 +87,9 @@ class Settings:
             prefix = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author and len(i.content) <= 5, timeout=30)
 
             # ---GET ROLE FOR ADMIN
-            await ctx.send("Please tag the role you would like for admins to use as a Ticketer Administrator.")
-            role = await self.bot.wait_for('message', check=validrolecheck, timeout=30)
-            roleint = int(role.content[3:-1])
+            await ctx.send("Please enter the name for the role to be used as a Ticketer Administrator.")
+            rolename = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author, timeout=30)
+            role.edit(name=rolename)
 
             overwrites = {
                 ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
@@ -97,7 +109,7 @@ class Settings:
             embed.add_field(name="Welcome Message:",
                             value=f"`{welcomemessage.content}`")
             embed.add_field(name="Ticketer Admin Role:",
-                            value=f"{role.content}")
+                            value=f"{role.mention}")
             embed.add_field(name="Prefix:",
                             value=f"{prefix.content}")
 
@@ -113,9 +125,10 @@ class Settings:
             if reaction.emoji != "\U0001f44d":
                 await ctx.send("Command Cancelled")
                 return
-            await self.bot.db.execute("UPDATE settings SET ticketchannel = $1, role = $2, welcomemessage = $3, ticketcategory = $4, prefix = $5, ticketprefix = $6, ticketcount = $7 WHERE serverid = $8;", ticketchanint, roleint, welcomemessage.content, categorychan.id, prefix.content, ticketprefix.content, ticketcountint, guild.id)
+            await self.bot.db.execute("UPDATE settings SET ticketchannel = $1, role = $2, welcomemessage = $3, ticketcategory = $4, prefix = $5, ticketprefix = $6, ticketcount = $7 WHERE serverid = $8;", ticketchanint, role.id, welcomemessage.content, categorychan.id, prefix.content, ticketprefix.content, ticketcountint, guild.id)
         else:
-            await self.bot.db.execute("UPDATE settings SET ticketcategory = $1 WHERE serverid = $2;", categorychan.id, guild.id)
+            await ctx.send("I have created a role for Ticketer Admin called Support Team. You may **NOT** change the name of this role. If you delete it, please rerun setup.")
+            await self.bot.db.execute("UPDATE settings SET ticketcategory = $1, role = $2 WHERE serverid = $3;", categorychan.id, role.id, guild.id)
         await self.bot.sendSuccess(ctx, f"The setup has completed.")
 
     @commands.command()
@@ -141,13 +154,14 @@ class Settings:
             await ctx.send("Command Cancelled")
             return
         ticketcategory = await self.bot.get_ticketcategory(ctx.guild.id)
+        role = await self.bot.get_role(ctx.guild.id)
+        await ctx.guild.get_role(role).delete(reason="Clearing Ticketer settings.")
         await self.bot.get_channel(ticketcategory).delete(reason="Clearing Ticketer settings.")
         await self.bot.db.execute(
             "DELETE FROM settings WHERE serverid = $1;", ctx.guild.id)
         await self.bot.db.execute(
             "INSERT INTO settings (serverid) VALUES ($1);", ctx.guild.id)
         await self.bot.sendSuccess(ctx, f"The settings were cleared.")
-
 
 def setup(bot):
     bot.add_cog(Settings(bot))

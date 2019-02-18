@@ -1,7 +1,10 @@
+#!/usr/bin/python3
+
 import discord
 import asyncio
 from discord.ext import commands
 import traceback
+import sys
 import asyncpg
 
 #Misc. Modules
@@ -14,7 +17,8 @@ extensions = [
     'modules.settings',
     'modules.database',
     'modules.credits',
-    'modules.tickets'
+    'modules.tickets',
+    'modules.errors'
 ]
 
 
@@ -57,11 +61,21 @@ class Ticketer(commands.AutoShardedBot):
         res = res['ticketcategory']
         return res
     
+    async def get_role(self, guildid):
+        res = await self.db.fetchrow("SELECT role FROM settings WHERE serverid = $1;", guildid)
+        res = res['role']
+        return res
+    
     async def get_ticketchan(self, guildid):
         res = await self.db.fetchrow("SELECT ticketchannel FROM settings WHERE serverid = $1;", guildid)
         res = res['ticketchannel']
         if res == 0:
             res = False
+        return res
+    
+    async def get_ticketcount(self, guildid):
+        res = await self.db.fetchrow("SELECT ticketcount FROM settings WHERE serverid = $1;", guildid)
+        res = res['ticketcount']
         return res
 
     async def get_premium(self, guildid):
@@ -71,7 +85,7 @@ class Ticketer(commands.AutoShardedBot):
     
     async def sendSuccess(self, target, valString):
         embed = discord.Embed(
-            title=f"Success \U00002705", colour=discord.Colour(0x32CD32))
+            title=f"**Success** \U00002705", colour=discord.Colour(0x32CD32))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         embed.add_field(
             name="Data:", value=valString)
@@ -79,7 +93,7 @@ class Ticketer(commands.AutoShardedBot):
     
     async def sendError(self, target, valString):
         embed = discord.Embed(
-            title=f"Error \U0000274c", colour=discord.Colour(0xf44b42))
+            title=f"**Error** \U0000274c", colour=discord.Colour(0xf44b42))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         embed.add_field(
             name="Data:", value=valString)
@@ -120,30 +134,6 @@ class Ticketer(commands.AutoShardedBot):
         await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', ticketchannel bigint DEFAULT 0, ticketcategory bigint DEFAULT 0, ticketprefix varchar DEFAULT 'ticket', role bigint DEFAULT 0, ticketcount smallint DEFAULT 3, welcomemessage varchar DEFAULT '');")
         await self.db.execute("CREATE TABLE IF NOT EXISTS premium(userid bigint PRIMARY KEY, credits smallint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS tickets(userid bigint, ticketid bigint);")
-  
-        # Error logging
-        async def on_command_error(ctx, error):
-            embed = discord.Embed(
-                title=f"**ERROR** \U0000274c", colour=discord.Colour(0xf44b42))
-            embed.set_footer(text=f"Ticketer | {embed.timestamp}")
-            embed.set_author(name=cfg.authorname)
-            embed.add_field(
-                name="There was the following exception!", value=f"```{error}```")
-            await ctx.send(embed=embed)
-            channel = self.get_channel(488893718125084687)
-            await channel.send(embed=embed)
-
-        async def on_error(ctx, error):
-            embed = discord.Embed(
-                title=f"**ERROR** \U0000274c", colour=discord.Colour(0xf44b42))
-            embed.set_footer(text=f"Ticketer | {embed.timestamp}")
-            embed.set_author(name=cfg.authorname)
-            embed.add_field(
-                name="There was the following exception!", value=f"```{error}```")
-            await ctx.send(embed=embed)
-            channel = self.get_channel(488893718125084687)
-            await channel.send(embed=embed)
-
 
 if __name__ == "__main__":
     Ticketer().run()

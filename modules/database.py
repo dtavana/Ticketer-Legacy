@@ -3,6 +3,7 @@ import discord
 import asyncio
 from discord.ext import commands
 import traceback
+import sys
 
 #Misc. Modules
 import datetime
@@ -54,14 +55,14 @@ class Database:
                                     value=f"`{key}`|`{value}`")
                     await ctx.send(embed=embed)
             except:
-                await self.bot.sendErorr(ctx, f"Your query returned `None` or was an invalid query.")
+                await self.bot.sendError(ctx, f"Your query returned `None` or was an invalid query.")
         else:
             try:
                 await self.bot.db.execute(query)
                 await self.bot.sendSuccess(ctx, f"The command was executed succesfully.")
             except:
-                await self.bot.sendErorr(ctx, f"Your query was invalid.")
-
+                await self.bot.sendError(ctx, f"Your query was invalid.")
+    
 
 def setup(bot):
     bot.add_cog(Database(bot))

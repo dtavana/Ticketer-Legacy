@@ -3,6 +3,7 @@ import discord
 import asyncio
 from discord.ext import commands
 import traceback
+import sys
 
 # Misc. Modules
 import datetime
@@ -120,7 +121,6 @@ class Administration:
             else:
                 self._last_result = ret
                 await ctx.send(f'```py\n{value}{ret}\n```')
-
 
 def setup(bot):
     bot.add_cog(Administration(bot))

@@ -21,7 +21,7 @@ class Tickets(commands.Cog):
         return role in ctx.author.roles
     
     @commands.command()
-    async def new(self, ctx, subject=None):
+    async def new(self, ctx, *, subject=None):
         isSetup = await self.bot.get_setup(ctx.guild.id)
         isPremium = await self.bot.get_premium(ctx.guild.id)
         if not isSetup:
@@ -29,13 +29,15 @@ class Tickets(commands.Cog):
             errorMessage = await self.bot.sendError(ctx, f"The server admins have not ran the `{prefix}setup` command yet!")
             await asyncio.sleep(10)
             await errorMessage.delete()
+            return
         ticketchan = await self.bot.get_ticketchan(ctx.guild.id)
         ticketchan = self.bot.get_channel(ticketchan)
-        if ctx.channel is not ticketchan and isPremium:
+        if ticketchan is not None and ctx.channel is not ticketchan and isPremium:
             errorMessage = await self.bot.sendError(ctx, f"Please run this command in {ticketchan.mention}")
             await asyncio.sleep(10)
             await errorMessage.delete()
-        data = await self.bot.db.fetch("SELECT * FROM tickets WHERE userid = $1;", ctx.author.id)
+            return
+        data = await self.bot.db.fetch("SELECT * FROM tickets WHERE userid = $1 AND serverid = $2;", ctx.author.id, ctx.guild.id)
         ticketcount = await self.bot.get_ticketcount(ctx.guild.id)
         if len(data) + 1 > ticketcount and ticketcount != -1:
             await self.bot.sendError(ctx, f"{ctx.author.mention} has the max amount of tickets one can have.")
@@ -45,26 +47,24 @@ class Tickets(commands.Cog):
         currentticket = await self.bot.get_currentticket(ctx.guild.id)
         channelToken = str(uuid.uuid4())
         channelToken = channelToken[:channelToken.find('-')]
+        channelToken = channelToken[::2]
         ticketprefix = await self.bot.get_ticketprefix(ctx.guild.id)
         welcomemessage = await self.bot.get_welcomemessage(ctx.guild.id)
         role = await self.bot.get_adminrole(ctx.guild.id)
         role = ctx.guild.get_role(role)
 
         overwrites = {
-            ctx.author: discord.PermissionOverwrite(read_messages=True),
-            ctx.author: discord.PermissionOverwrite(send_messages=True),
-            ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            role: discord.PermissionOverwrite(read_messages=True),
-            role: discord.PermissionOverwrite(read_messages=True)
-
+            self.bot.user: discord.PermissionOverwrite(send_messages=False, read_messages=False),
+            ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
+            ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True),
+            role: discord.PermissionOverwrite(send_messages=True, read_messages=True)
         }
         #newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{currentticket}", category=ticketcategory, overwrites=overwrites)
         newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{channelToken}", category=ticketcategory, overwrites=overwrites)
         await self.bot.db.execute("INSERT INTO tickets (userid, ticketid, serverid) VALUES ($1, $2, $3);", ctx.author.id, newticket.id, ctx.guild.id)
         await self.bot.sendSuccess(ctx, f"New ticket created: {newticket.mention}.\n\nClick on the ticket in this message to navigate to the ticket.")
         await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32))
-        await self.bot.newTicket(newticket, subject, welcomemessage)
+        await self.bot.newTicket(newticket, subject, welcomemessage, ctx.author)
         await self.bot.increment_ticket(ctx.guild.id)
     
     @commands.command()
@@ -78,7 +78,7 @@ class Tickets(commands.Cog):
 
     @commands.command()
     @commands.check(ticketeradmin)
-    async def close(self, ctx, reason=None):
+    async def close(self, ctx, *, reason=None):
         data = await self.bot.db.fetchrow("SELECT ticketid FROM tickets WHERE ticketid = $1;", ctx.channel.id)
         if data is not None:
             if(reason is None):

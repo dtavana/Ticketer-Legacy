@@ -16,7 +16,6 @@ class Information(commands.Cog):
     
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"to {len(self.bot.users)} users"))
         ticketchan = await self.bot.get_ticketchan(member.guild.id)
         try:
             ticketchan = self.bot.get_channel(ticketchan)
@@ -32,14 +31,10 @@ class Information(commands.Cog):
         else:
             embed.add_field(name=f"Welcome to {member.guild}!",value=f"For support, please navigate to {ticketchan.mention} and type `{prefix}new SUBJECT` and replace subject with a brief topic. You may then post any info in the created channel.\n\n")
         await member.send(embed=embed)
-    
-    @commands.Cog.listener()
-    async def on_member_remove(self, member):
-        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"to {len(self.bot.users)} users"))
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
-        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"to {len(self.bot.users)} users"))
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{len(self.bot.guilds)} Guilds"))
         try:
             await self.bot.db.execute("INSERT INTO servers (serverid) VALUES ($1);", guild.id)
         except:
@@ -62,7 +57,7 @@ class Information(commands.Cog):
     
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
-        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"to {len(self.bot.users)} users"))
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{len(self.bot.guilds)} Guilds"))
         ticketcategory = await self.bot.get_ticketcategory(guild.id)
         role = await self.bot.get_adminrole(guild.id)
         try:
@@ -73,7 +68,6 @@ class Information(commands.Cog):
             await self.bot.get_channel(ticketcategory).delete(reason="Clearing Ticketer settings.")
         except:
             pass
-        await self.bot.db.execute("DELETE FROM servers WHERE serverid = $1;", guild.id)
         await self.bot.db.execute("DELETE FROM settings WHERE serverid = $1;", guild.id)
 
     @commands.command()

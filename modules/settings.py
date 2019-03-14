@@ -20,6 +20,8 @@ class Settings(commands.Cog):
         guild = ctx.guild
         def validchannelcheck(message):
             try:
+                if message.content == "-1":
+                    return True
                 messagestr = message.content[2:-1]
                 channel = self.bot.get_channel(int(messagestr))
                 return message.author == ctx.author and channel is not None
@@ -56,15 +58,6 @@ class Settings(commands.Cog):
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         embed.set_thumbnail(url = self.bot.user.avatar_url)
         role = await ctx.guild.create_role(name="Support Team")
-        '''
-        overwrites = {
-            ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False),
-            role: discord.PermissionOverwrite(send_messages=True),
-            role: discord.PermissionOverwrite(read_messages=True)
-        }
-        categorychan = await ctx.guild.create_category("TicketerCategory", overwrites=overwrites)
-        '''
 
         categorychan = await ctx.guild.create_category("TicketerCategory")
 
@@ -73,35 +66,38 @@ class Settings(commands.Cog):
         if(isPremium):
             try:
                 # ---GET CHANNEL FOR TICKETS
-                await ctx.send("Please tag the channel you would like to set as the channel to create tickets.")
-                ticketchan = await self.bot.wait_for('message', check=validchannelcheck, timeout=30)
-                ticketchanint = int(ticketchan.content[2:-1])
+                await ctx.send("Please tag the channel you would like to set as the channel to create tickets. **NOTE:** Enter **-1** to not restrict the channel.")
+                ticketchan = await self.bot.wait_for('message', check=validchannelcheck, timeout=120)
+                if(int(ticketchan.content) == -1):
+                    ticketchanint = -1
+                else:
+                    ticketchanint = int(ticketchan.content[2:-1])
 
                 # ---GET CHANNEL FOR LOGS
                 await ctx.send("Please tag the channel you would like to set as the log channel for tickets.")
-                logchan = await self.bot.wait_for('message', check=validchannelcheck, timeout=30)
+                logchan = await self.bot.wait_for('message', check=validchannelcheck, timeout=120)
                 logchanint = int(logchan.content[2:-1])
 
                 # ---GET TICKET PREFIX
                 await ctx.send("Please enter what you would like as the ticket prefix. **NOTE**: Must be 10 characters or less!")
-                ticketprefix = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author and len(i.content) <= 10, timeout=30)
+                ticketprefix = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author and len(i.content) <= 10, timeout=120)
 
                 # ---GET WELCOME MESSAGE FOR CHANNEL
-                await ctx.send("Please enter what you would like the welcome message to be for new tickets. **NOTE**: Must be 100 characters or less!")
-                welcomemessage = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author and len(i.content) <= 100, timeout=30)
+                await ctx.send("Please enter what you would like the welcome message to be for new tickets. **NOTE**: Must be 2000 characters or less!")
+                welcomemessage = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author and len(i.content) <= 2000, timeout=120)
 
                 # ---GET TICKET AMOUNT
                 await ctx.send("Please enter the max amount of tickets a user may have at a time. Use -1 for unlimited. **NOTE**: Must be an actual integer.")
-                ticketcount = await self.bot.wait_for('message', check=amountcheck, timeout=30)
+                ticketcount = await self.bot.wait_for('message', check=amountcheck, timeout=120)
                 ticketcountint = int(ticketcount.content)
 
                 # ---GET PREFIX
                 await ctx.send("Please enter youre desired command prefix **NOTE**: Must be less than 5 characters!")
-                prefix = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author and len(i.content) <= 5, timeout=30)
+                prefix = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author and len(i.content) <= 5, timeout=120)
 
                 # ---GET ROLE FOR ADMIN
                 await ctx.send("Please enter the name for the role to be used for a Ticketer Administrator.")
-                rolename = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author, timeout=30)
+                rolename = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author, timeout=120)
                 await role.edit(name=rolename.content)
             except asyncio.TimeoutError:
                 await self.bot.sendError(ctx, f'Your current operation timed out. Please re-run the command')
@@ -117,8 +113,9 @@ class Settings(commands.Cog):
 
             await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
 
-            embed.add_field(name="Create Ticket Channel:",
-                            value=f"{ticketchan.content}")
+            if ticketchanint != -1:
+                embed.add_field(name="Create Ticket Channel:",
+                                value=f"{ticketchan.content}")
             embed.add_field(name="Ticket Log Channel:",
                             value=f"{logchan.content}")
             embed.add_field(name="Ticket Prefix:",
@@ -146,7 +143,7 @@ class Settings(commands.Cog):
                 return
             await self.bot.db.execute("UPDATE settings SET ticketchannel = $1, role = $2, welcomemessage = $3, ticketcategory = $4, prefix = $5, ticketprefix = $6, ticketcount = $7, logchannel = $8 WHERE serverid = $9;", ticketchanint, role.id, welcomemessage.content, categorychan.id, prefix.content, ticketprefix.content, ticketcountint, logchanint, guild.id)
         else:
-            await ctx.send("I have created a role for Ticketer Admin called Support Team. You may **NOT** change the name of this role. If you delete it, please rerun setup.")
+            await ctx.send("I have created a role called Ticketer Admin. If you delete this role please re-run setup.")
             await self.bot.db.execute("UPDATE settings SET ticketcategory = $1, role = $2 WHERE serverid = $3;", categorychan.id, role.id, guild.id)
         await self.bot.db.execute("UPDATE servers SET setup = True WHERE serverid = $1;", ctx.guild.id)
         await self.bot.sendSuccess(ctx, f"The setup has completed.")

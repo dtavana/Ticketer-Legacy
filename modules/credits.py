@@ -73,13 +73,13 @@ class Credits(commands.Cog):
     
     @commands.check(premium_admins)
     @commands.command(hidden=True)
-    async def giftpremium(self, ctx, user: discord.Member, amount = 1):
+    async def giftpremium(self, ctx, target: discord.Member, amount = 1):
         await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
         embed = discord.Embed(
             title=f"Premium Gift \U0000270d", colour=discord.Colour(0xFFA500))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         embed.set_thumbnail(url = self.bot.user.avatar_url)
-        embed.add_field(name="User:", value=f"{user.mention}")
+        embed.add_field(name="User:", value=f"{target.mention}")
         embed.add_field(name="Amount:", value=f"**{amount}**")
         message = await ctx.send(embed=embed)
         await message.add_reaction("\U0001f44d")
@@ -93,13 +93,13 @@ class Credits(commands.Cog):
             await ctx.send("Command Cancelled")
             return
         try:
-            await self.bot.db.execute("INSERT INTO premium (userid, credits) VALUES ($1, $2);", user.id, amount) 
+            await self.bot.db.execute("INSERT INTO premium (userid, credits) VALUES ($1, $2);", target.id, amount) 
         except:
-            await self.bot.db.execute("UPDATE premium SET credits = credits + $1 WHERE userid = $2;", amount, user.id)
+            await self.bot.db.execute("UPDATE premium SET credits = credits + $1 WHERE userid = $2;", amount, target.id)
 
-        newcredits = await self.bot.db.fetchrow("SELECT credits FROM premium WHERE userid = $1;", user.id)
+        newcredits = await self.bot.db.fetchrow("SELECT credits FROM premium WHERE userid = $1;", target.id)
         newcredits = newcredits['credits']
-        await self.bot.sendSuccess(ctx, f"{user.mention} has received {amount} credits and now has {newcredits} credits.")
+        await self.bot.sendSuccess(ctx, f"{target.mention} has received {amount} credits and now has {newcredits} credits.")
     
     @credits.error
     async def credits_handler(self, ctx, error):

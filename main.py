@@ -129,13 +129,15 @@ class Ticketer(commands.Bot):
             name="Data:", value=valString)
         await target.send(embed=embed)
     
-    async def newTicket(self, target, subject, welcomemessage):
+    async def newTicket(self, target, subject, welcomemessage, user):
         embed = discord.Embed(
             title=f"New Ticket \U00002705", colour=discord.Colour(0x32CD32), description=welcomemessage)
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         embed.set_thumbnail(url = self.user.avatar_url)
         embed.add_field(
-            name="Subject:", value=subject)
+            name="User:", value=f"{user.mention}")
+        embed.add_field(
+            name="Subject:", value=f"`{subject}`")
         await target.send(embed=embed)
 
     def run(self):
@@ -154,7 +156,7 @@ class Ticketer(commands.Bot):
         print(f"Logged in as: {self.user}")
         print(f"Total Servers: {len(self.guilds)}")
         print(f"Total Cogs: {len(self.cogs)}")
-        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"to {len(self.users)} users"))
+        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{len(self.guilds)} Guilds"))
 
         credentials = {"user": cfg.ticketeruser, "password": cfg.ticketerpass,
                        "database": cfg.ticketerdb, "host": cfg.ticketerhost, "port": cfg.ticketerport}

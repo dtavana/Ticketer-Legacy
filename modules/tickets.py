@@ -24,7 +24,7 @@ class Tickets(commands.Cog):
     async def new(self, ctx, subject=None):
         data = await self.bot.db.fetch("SELECT * FROM tickets WHERE userid = $1;", ctx.author.id)
         ticketcount = await self.bot.get_ticketcount(ctx.guild.id)
-        if len(data) + 1 > ticketcount:
+        if len(data) + 1 > ticketcount and ticketcount != -1:
             await self.bot.sendError(ctx, f"{ctx.author.mention} has the max amount of tickets one can have.")
             return
         ticketcategoryint = await self.bot.get_ticketcategory(ctx.guild.id)
@@ -39,7 +39,7 @@ class Tickets(commands.Cog):
         newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{currentticket}", category=ticketcategory, overwrites=overwrites)
         await self.bot.db.execute("INSERT INTO tickets (userid, ticketid, serverid) VALUES ($1, $2, $3);", ctx.author.id, newticket.id, ctx.guild.id)
         await self.bot.sendSuccess(ctx, f"New ticket created: {newticket.mention}.\n\nClick on the ticket in this message to navigate to the ticket.")
-        await self.bot.sendLog(ctx,guild.id, f"{ctx.author.mention} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32))
+        await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32))
         await self.bot.newTicket(newticket, subject, welcomemessage)
         await self.bot.increment_ticket(ctx.guild.id)
     
@@ -69,8 +69,7 @@ class Tickets(commands.Cog):
                 if reaction.emoji != "\U0001f44d":
                     await ctx.send("Command Cancelled")
                     return
-            else:
-                await self.bot.sendLog(ctx,guild.id, f"{ctx.author.mention} closed ticket {ctx.channel}\n\nReason: {reason}", discord.Colour(0xf44b42))
+            await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed `{ctx.channel}`\n\n**Reason:** `{reason}`", discord.Colour(0xf44b42))
             await self.bot.db.execute("DELETE FROM tickets WHERE ticketid = $1;", ctx.channel.id)
             await ctx.channel.delete(reason="Closing ticket.")
         else:
@@ -98,12 +97,12 @@ class Tickets(commands.Cog):
             return
         
         data = await self.bot.db.fetch("SELECT ticketid FROM tickets WHERE serverid = $1;", ctx.guild.id)
-        data = data[0]
-        for key, value in data.items():
-            try:
-                await self.bot.get_channel(value).delete(reason="Closing all tickets.")
-            except:
-                pass
+        for ticket in data:
+            for key, value in data.items():
+                try:
+                    await self.bot.get_channel(value).delete(reason="Closing all tickets.")
+                except:
+                    pass
         await self.bot.db.execute("DELETE FROM tickets WHERE serverid = $1;", ctx.guild.id)
     
     @commands.command()

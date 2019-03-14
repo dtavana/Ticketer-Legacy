@@ -14,7 +14,7 @@ class Credits(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def premium_admins(self, ctx):
+    async def premium_admins(ctx):
         admins = [112762841173368832]
         return ctx.author.id in admins
     

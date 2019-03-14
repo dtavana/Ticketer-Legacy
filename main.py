@@ -115,7 +115,7 @@ class Ticketer(commands.Bot):
         logchanid = await self.get_logchan(guildid)
         target = self.get_channel(logchanid)
         embed = discord.Embed(
-            title=f"**Log** \U0000274c", colour=color)
+            title=f"**Log** \U0001f5d2", colour=color)
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         embed.add_field(
             name="Data:", value=valString)

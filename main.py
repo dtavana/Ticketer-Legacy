@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-
 import discord
 import asyncio
 from discord.ext import commands
@@ -22,7 +21,7 @@ extensions = [
 ]
 
 
-class Ticketer(commands.AutoShardedBot):
+class Ticketer(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=self.get_pref, case_insensitive=True)
 
@@ -58,17 +57,30 @@ class Ticketer(commands.AutoShardedBot):
     
     async def get_ticketcategory(self, guildid):
         res = await self.db.fetchrow("SELECT ticketcategory FROM settings WHERE serverid = $1;", guildid)
-        res = res['ticketcategory']
-        return res
+        try:
+            res = res['ticketcategory']
+            return res
+        except:
+            return None
     
-    async def get_role(self, guildid):
+    async def get_adminrole(self, guildid):
         res = await self.db.fetchrow("SELECT role FROM settings WHERE serverid = $1;", guildid)
-        res = res['role']
-        return res
+        try:
+            res = res['role']
+            return res
+        except:
+            return None
     
     async def get_ticketchan(self, guildid):
         res = await self.db.fetchrow("SELECT ticketchannel FROM settings WHERE serverid = $1;", guildid)
         res = res['ticketchannel']
+        if res == 0:
+            res = False
+        return res
+    
+    async def get_logchan(self, guildid):
+        res = await self.db.fetchrow("SELECT logchannel FROM settings WHERE serverid = $1;", guildid)
+        res = res['logchannel']
         if res == 0:
             res = False
         return res
@@ -99,6 +111,16 @@ class Ticketer(commands.AutoShardedBot):
             name="Data:", value=valString)
         await target.send(embed=embed)
     
+    async def sendLog(self, guildid, valString, color):
+        logchanid = await self.get_logchan(guildid)
+        target = self.get_channel(logchanid)
+        embed = discord.Embed(
+            title=f"**Log** \U0000274c", colour=color)
+        embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+        embed.add_field(
+            name="Data:", value=valString)
+        await target.send(embed=embed)
+    
     async def newTicket(self, target, subject, welcomemessage):
         embed = discord.Embed(
             title=f"New Ticket \U00002705", colour=discord.Colour(0x32CD32), description=welcomemessage)
@@ -123,7 +145,7 @@ class Ticketer(commands.AutoShardedBot):
         print(f"Logged in as: {self.user}")
         print(f"Total Servers: {len(self.guilds)}")
         print(f"Total Cogs: {len(self.cogs)}")
-        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"Helping {len(self.users)} users"))
+        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"to {len(self.users)} users"))
 
         credentials = {"user": cfg.ticketeruser, "password": cfg.ticketerpass,
                        "database": cfg.ticketerdb, "host": cfg.ticketerhost, "port": cfg.ticketerport}
@@ -131,9 +153,11 @@ class Ticketer(commands.AutoShardedBot):
 
         # Example create table code, you'll probably change it to suit you
         await self.db.execute("CREATE TABLE IF NOT EXISTS servers(serverid bigint PRIMARY KEY, currentticket smallint DEFAULT 1, premium boolean DEFAULT FALSE);")
-        await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', ticketchannel bigint DEFAULT 0, ticketcategory bigint DEFAULT 0, ticketprefix varchar DEFAULT 'ticket', role bigint DEFAULT 0, ticketcount smallint DEFAULT 3, welcomemessage varchar DEFAULT '');")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', logchannel bigint DEFAULT 0, ticketchannel bigint DEFAULT 0, ticketcategory bigint DEFAULT 0, ticketprefix varchar DEFAULT 'ticket', role bigint DEFAULT 0, ticketcount smallint DEFAULT 3, welcomemessage varchar DEFAULT '');")
         await self.db.execute("CREATE TABLE IF NOT EXISTS premium(userid bigint PRIMARY KEY, credits smallint);")
-        await self.db.execute("CREATE TABLE IF NOT EXISTS tickets(userid bigint, ticketid bigint);")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS tickets(userid bigint, ticketid bigint, serverid bigint);")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS blacklist(userid bigint, serverid bigint);")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS payments(userid bigint, paymentid varchar, payerid varchar, dateofpurchase date DEFAULT NOW());")
 
 if __name__ == "__main__":
     Ticketer().run()

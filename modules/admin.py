@@ -15,7 +15,7 @@ import textwrap
 from contextlib import redirect_stdout
 
 
-class Administration:
+class Administration(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self._last_result = None

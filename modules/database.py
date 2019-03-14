@@ -10,7 +10,7 @@ import datetime
 import config as cfg
 
 
-class Database:
+class Database(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 

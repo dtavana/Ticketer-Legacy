@@ -10,12 +10,13 @@ import config as cfg
 import psutil
 
 
-class Information:
+class Information(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
     
+    @commands.Cog.listener()
     async def on_member_join(self, member):
-        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"Helping {len(self.bot.users)} users"))
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"to {len(self.bot.users)} users"))
         ticketchan = await self.bot.get_ticketchan(member.guild.id)
         prefix = await self.bot.getPrefix(member.guild.id)
         embed = discord.Embed(
@@ -27,12 +28,21 @@ class Information:
             embed.add_field(name=f"Welcome to {member.guild}!",value=f"For support, please navigate to {ticketchan} and type `{prefix}new SUBJECT` and replace subject with a brief topic. You may then post any info in the created channel.\n\n")
         await member.send(embed=embed)
     
+    @commands.Cog.listener()
     async def on_member_remove(self, member):
-        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"Helping {len(self.bot.users)} users"))
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"to {len(self.bot.users)} users"))
 
+    @commands.Cog.listener()
     async def on_guild_join(self, guild):
-        await self.bot.db.execute("INSERT INTO servers (serverid) VALUES ($1);", guild.id)
-        await self.bot.db.execute("INSERT INTO settings (serverid) VALUES ($1);", guild.id)
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"to {len(self.bot.users)} users"))
+        try:
+            await self.bot.db.execute("INSERT INTO servers (serverid) VALUES ($1);", guild.id)
+        except:
+            pass
+        try:
+            await self.bot.db.execute("INSERT INTO settings (serverid) VALUES ($1);", guild.id)
+        except:
+            pass
         owner = guild.owner
         prefix = await self.bot.getPrefix(guild.id)
         
@@ -44,7 +54,19 @@ class Information:
         await owner.send(embed=embed)
         await owner.send("https://discord.gg/uzygVc2")
     
+    @commands.Cog.listener()
     async def on_guild_remove(self, guild):
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"to {len(self.bot.users)} users"))
+        ticketcategory = await self.bot.get_ticketcategory(guild.id)
+        role = await self.bot.get_adminrole(guild.id)
+        try:
+            await guild.get_role(role).delete(reason="Clearing Ticketer settings.")
+        except:
+            pass
+        try:
+            await self.bot.get_channel(ticketcategory).delete(reason="Clearing Ticketer settings.")
+        except:
+            pass
         await self.bot.db.execute("DELETE FROM servers WHERE serverid = $1;", guild.id)
         await self.bot.db.execute("DELETE FROM settings WHERE serverid = $1;", guild.id)
 

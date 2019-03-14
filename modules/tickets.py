@@ -8,7 +8,7 @@ import sys
 # Misc. Modules
 import datetime
 import config as cfg
-
+import uuid
 
 class Tickets(commands.Cog):
     def __init__(self, bot):
@@ -30,13 +30,24 @@ class Tickets(commands.Cog):
         ticketcategoryint = await self.bot.get_ticketcategory(ctx.guild.id)
         ticketcategory = self.bot.get_channel(ticketcategoryint)
         currentticket = await self.bot.get_currentticket(ctx.guild.id)
+        channelToken = str(uuid.uuid4())
+        channelToken = channelToken[:channelToken.find('-')]
         ticketprefix = await self.bot.get_ticketprefix(ctx.guild.id)
         welcomemessage = await self.bot.get_welcomemessage(ctx.guild.id)
+        role = await self.bot.get_adminrole(ctx.guild.id)
+        role = ctx.guild.get_role(role)
+
         overwrites = {
-            ctx.author: discord.PermissionOverwrite(read_messages=False),
-            ctx.author: discord.PermissionOverwrite(send_messages=False)
+            ctx.author: discord.PermissionOverwrite(read_messages=True),
+            ctx.author: discord.PermissionOverwrite(send_messages=True),
+            ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            role: discord.PermissionOverwrite(read_messages=True),
+            role: discord.PermissionOverwrite(read_messages=True)
+
         }
-        newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{currentticket}", category=ticketcategory, overwrites=overwrites)
+        #newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{currentticket}", category=ticketcategory, overwrites=overwrites)
+        newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{channelToken}", category=ticketcategory, overwrites=overwrites)
         await self.bot.db.execute("INSERT INTO tickets (userid, ticketid, serverid) VALUES ($1, $2, $3);", ctx.author.id, newticket.id, ctx.guild.id)
         await self.bot.sendSuccess(ctx, f"New ticket created: {newticket.mention}.\n\nClick on the ticket in this message to navigate to the ticket.")
         await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32))
@@ -55,8 +66,8 @@ class Tickets(commands.Cog):
     @commands.command()
     @commands.check(ticketeradmin)
     async def close(self, ctx, reason=None):
-        data = await self.bot.db.fetchrow("SELECT ticketid = $1 AS exists FROM tickets;", ctx.channel.id)
-        if data['exists']:
+        data = await self.bot.db.fetchrow("SELECT ticketid FROM tickets WHERE ticketid = $1;", ctx.channel.id)
+        if data is not None:
             if(reason is None):
                 message = await ctx.send(f"Are you sure you would like to close {ctx.channel.mention}? If yes, react with a Thumbs Up. Otherwise, react with a Thumbs Down")
                 await message.add_reaction("\U0001f44d")
@@ -96,14 +107,15 @@ class Tickets(commands.Cog):
             await ctx.send("Command Cancelled")
             return
         
-        data = await self.bot.db.fetch("SELECT ticketid FROM tickets WHERE serverid = $1;", ctx.guild.id)
-        for ticket in data:
-            for key, value in data.items():
+        tickets = await self.bot.db.fetch("SELECT ticketid FROM tickets WHERE serverid = $1;", ctx.guild.id)
+        for ticket in tickets:
+            for key, value in ticket.items():
                 try:
                     await self.bot.get_channel(value).delete(reason="Closing all tickets.")
                 except:
                     pass
         await self.bot.db.execute("DELETE FROM tickets WHERE serverid = $1;", ctx.guild.id)
+        await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed all tickets.", discord.Colour(0xf44b42))
     
     @commands.command()
     @commands.check(ticketeradmin)

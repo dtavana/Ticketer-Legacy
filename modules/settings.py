@@ -55,14 +55,18 @@ class Settings(commands.Cog):
             title=f"Setup Info \U0000270d", colour=discord.Colour(0xFFA500))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         role = await ctx.guild.create_role(name="Support Team")
+        '''
         overwrites = {
             ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
             ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False),
             role: discord.PermissionOverwrite(send_messages=True),
-            role: discord.PermissionOverwrite(send_messages=True)
+            role: discord.PermissionOverwrite(read_messages=True)
         }
         categorychan = await ctx.guild.create_category("TicketerCategory", overwrites=overwrites)
-        
+        '''
+
+        categorychan = await ctx.guild.create_category("TicketerCategory")
+
         await ctx.send("I have created a category for tickets to be placed under, feel free to rename and move it but do not delete it. If you do, run this setup again.")
         
         if(isPremium):

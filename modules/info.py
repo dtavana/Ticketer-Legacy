@@ -18,14 +18,19 @@ class Information(commands.Cog):
     async def on_member_join(self, member):
         await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"to {len(self.bot.users)} users"))
         ticketchan = await self.bot.get_ticketchan(member.guild.id)
+        try:
+            ticketchan = self.bot.get_channel(ticketchan)
+        except:
+            ticketchan = False
         prefix = await self.bot.getPrefix(member.guild.id)
         embed = discord.Embed(
             title=f"Ticketer", colour=discord.Colour(0x32CD32))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+        embed.set_thumbnail(url = self.bot.user.avatar_url)
         if not ticketchan:
             embed.add_field(name=f"Welcome to {member.guild}!", value=f"For support, type `{prefix}new SUBJECT` and replace subject with a brief topic. You may then post any info in the created channel.\n\n")
         else:
-            embed.add_field(name=f"Welcome to {member.guild}!",value=f"For support, please navigate to {ticketchan} and type `{prefix}new SUBJECT` and replace subject with a brief topic. You may then post any info in the created channel.\n\n")
+            embed.add_field(name=f"Welcome to {member.guild}!",value=f"For support, please navigate to {ticketchan.mention} and type `{prefix}new SUBJECT` and replace subject with a brief topic. You may then post any info in the created channel.\n\n")
         await member.send(embed=embed)
     
     @commands.Cog.listener()
@@ -49,6 +54,7 @@ class Information(commands.Cog):
         embed = discord.Embed(
             title=f"Ticketer", colour=discord.Colour(0x32CD32))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+        embed.set_thumbnail(url = self.bot.user.avatar_url)
         embed.add_field(
             name=f"Thank you for inviting me to {guild}!", value=f"My prefix is `{prefix}`. To start, please run `{prefix}setup`. You may view all of my current features using `{prefix}features`. You may upgrade these features by paying a one-time fee of **$5** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
         await owner.send(embed=embed)
@@ -95,15 +101,16 @@ class Information(commands.Cog):
 
         p = psutil.Process()
 
-        pre = await self.bot.get_pref(self, self.bot, ctx)
+        prefix = await self.bot.getPrefix(ctx.guild.id)
 
         memory_percent = psutil.virtual_memory()[2]
 
         e = discord.Embed(color=discord.Color.dark_blue())
+        e.set_thumbnail(url = self.bot.user.avatar_url)
         e.add_field(name="Bot Stats", value=f"**Coder:** {cfg.authorname}\n"
                                             f"**Commands:** {len(self.bot.commands)}\n"
                                             f"**Cogs:** {len(self.bot.cogs)}\n", inline=False)
-        e.add_field(name="Discord Stats", value=f"**Prefix:** {pre}\n"
+        e.add_field(name="Discord Stats", value=f"**Prefix:** {prefix}\n"
                                                 f"**Ping:** {ctx.bot.latency * 1000:,.0f}ms\n"
                                                 f"**Guilds:** {len(self.bot.guilds)}\n"
                                                 f"**Users:** {len(self.bot.users)}\n"

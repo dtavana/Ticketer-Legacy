@@ -22,6 +22,19 @@ class Tickets(commands.Cog):
     
     @commands.command()
     async def new(self, ctx, subject=None):
+        isSetup = await self.bot.get_setup(ctx.guild.id)
+        isPremium = await self.bot.get_premium(ctx.guild.id)
+        if not isSetup:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            errorMessage = await self.bot.sendError(ctx, f"The server admins have not ran the `{prefix}setup` command yet!")
+            await asyncio.sleep(10)
+            await errorMessage.delete()
+        ticketchan = await self.bot.get_ticketchan(ctx.guild.id)
+        ticketchan = self.bot.get_channel(ticketchan)
+        if ctx.channel is not ticketchan and isPremium:
+            errorMessage = await self.bot.sendError(ctx, f"Please run this command in {ticketchan.mention}")
+            await asyncio.sleep(10)
+            await errorMessage.delete()
         data = await self.bot.db.fetch("SELECT * FROM tickets WHERE userid = $1;", ctx.author.id)
         ticketcount = await self.bot.get_ticketcount(ctx.guild.id)
         if len(data) + 1 > ticketcount and ticketcount != -1:

@@ -54,6 +54,7 @@ class Settings(commands.Cog):
         embed = discord.Embed(
             title=f"Setup Info \U0000270d", colour=discord.Colour(0xFFA500))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+        embed.set_thumbnail(url = self.bot.user.avatar_url)
         role = await ctx.guild.create_role(name="Support Team")
         '''
         overwrites = {
@@ -99,7 +100,7 @@ class Settings(commands.Cog):
                 prefix = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author and len(i.content) <= 5, timeout=30)
 
                 # ---GET ROLE FOR ADMIN
-                await ctx.send("Please enter the name for the role to be used for Ticketer Administrator.")
+                await ctx.send("Please enter the name for the role to be used for a Ticketer Administrator.")
                 rolename = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author, timeout=30)
                 await role.edit(name=rolename.content)
             except asyncio.TimeoutError:
@@ -147,7 +148,9 @@ class Settings(commands.Cog):
         else:
             await ctx.send("I have created a role for Ticketer Admin called Support Team. You may **NOT** change the name of this role. If you delete it, please rerun setup.")
             await self.bot.db.execute("UPDATE settings SET ticketcategory = $1, role = $2 WHERE serverid = $3;", categorychan.id, role.id, guild.id)
+        await self.bot.db.execute("UPDATE servers SET setup = True WHERE serverid = $1;", ctx.guild.id)
         await self.bot.sendSuccess(ctx, f"The setup has completed.")
+        await ctx.author.add_roles(role, reason="Role for Ticketer Administrators added")
 
     @commands.command()
     @commands.has_permissions(administrator=True)
@@ -157,6 +160,7 @@ class Settings(commands.Cog):
         embed = discord.Embed(
             title=f"Settings Info \U0000270d", colour=discord.Colour(0xFFA500))
         embed.set_footer(text=f"Ticketer | {embed.timestamp}")
+        embed.set_thumbnail(url = self.bot.user.avatar_url)
         embed.set_author(name=cfg.authorname)
         embed.add_field(name="Type:", value=f"`CLEAR SETTINGS`")
         message = await ctx.send(embed=embed)
@@ -173,13 +177,20 @@ class Settings(commands.Cog):
             return
         ticketcategory = await self.bot.get_ticketcategory(ctx.guild.id)
         role = await self.bot.get_adminrole(ctx.guild.id)
-        await role.delete(reason="Clearing Ticketer settings.")
-        await self.bot.get_channel(ticketcategory).delete(reason="Clearing Ticketer settings.")
+        try:
+            await ctx.guild.get_role(role).delete(reason="Clearing Ticketer settings.")
+        except:
+            pass
+        try:
+            await self.bot.get_channel(ticketcategory).delete(reason="Clearing Ticketer settings.")
+        except:
+            pass
         await self.bot.db.execute(
             "DELETE FROM settings WHERE serverid = $1;", ctx.guild.id)
         await self.bot.db.execute(
             "INSERT INTO settings (serverid) VALUES ($1);", ctx.guild.id)
         await self.bot.sendSuccess(ctx, f"The settings were cleared.")
+        await self.bot.db.execute("UPDATE servers SET setup = False WHERE serverid = $1;", ctx.guild.id)
 
 def setup(bot):
     bot.add_cog(Settings(bot))

@@ -35,6 +35,7 @@ class Credits(commands.Cog):
                 await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
                 embed = discord.Embed(title=f"Redeem Premium \U0000270d", colour=discord.Colour(0xFFA500))
                 embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+                embed.set_thumbnail(url = self.bot.user.avatar_url)
                 embed.add_field(name="Server:", value=f"`{ctx.author.guild}`")
                 message = await ctx.send(embed=embed)
                 await message.add_reaction("\U0001f44d")
@@ -77,6 +78,7 @@ class Credits(commands.Cog):
         embed = discord.Embed(
             title=f"Premium Gift \U0000270d", colour=discord.Colour(0xFFA500))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+        embed.set_thumbnail(url = self.bot.user.avatar_url)
         embed.add_field(name="User:", value=f"{user.mention}")
         embed.add_field(name="Amount:", value=f"**{amount}**")
         message = await ctx.send(embed=embed)

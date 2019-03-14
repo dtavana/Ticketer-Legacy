@@ -85,6 +85,11 @@ class Ticketer(commands.Bot):
             res = False
         return res
     
+    async def get_setup(self, guildid):
+        res = await self.db.fetchrow("SELECT setup FROM servers WHERE serverid = $1;", guildid)
+        res = res['setup']
+        return res
+    
     async def get_ticketcount(self, guildid):
         res = await self.db.fetchrow("SELECT ticketcount FROM settings WHERE serverid = $1;", guildid)
         res = res['ticketcount']
@@ -99,17 +104,19 @@ class Ticketer(commands.Bot):
         embed = discord.Embed(
             title=f"**Success** \U00002705", colour=discord.Colour(0x32CD32))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+        embed.set_thumbnail(url = self.user.avatar_url)
         embed.add_field(
             name="Data:", value=valString)
-        await target.send(embed=embed)
+        return await target.send(embed=embed)
     
     async def sendError(self, target, valString):
         embed = discord.Embed(
             title=f"**Error** \U0000274c", colour=discord.Colour(0xf44b42))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+        embed.set_thumbnail(url = self.user.avatar_url)
         embed.add_field(
             name="Data:", value=valString)
-        await target.send(embed=embed)
+        return await target.send(embed=embed)
     
     async def sendLog(self, guildid, valString, color):
         logchanid = await self.get_logchan(guildid)
@@ -117,6 +124,7 @@ class Ticketer(commands.Bot):
         embed = discord.Embed(
             title=f"**Log** \U0001f5d2", colour=color)
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+        embed.set_thumbnail(url = self.user.avatar_url)
         embed.add_field(
             name="Data:", value=valString)
         await target.send(embed=embed)
@@ -125,6 +133,7 @@ class Ticketer(commands.Bot):
         embed = discord.Embed(
             title=f"New Ticket \U00002705", colour=discord.Colour(0x32CD32), description=welcomemessage)
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+        embed.set_thumbnail(url = self.user.avatar_url)
         embed.add_field(
             name="Subject:", value=subject)
         await target.send(embed=embed)
@@ -152,7 +161,7 @@ class Ticketer(commands.Bot):
         self.db = await asyncpg.create_pool(**credentials)
 
         # Example create table code, you'll probably change it to suit you
-        await self.db.execute("CREATE TABLE IF NOT EXISTS servers(serverid bigint PRIMARY KEY, currentticket smallint DEFAULT 1, premium boolean DEFAULT FALSE);")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS servers(serverid bigint PRIMARY KEY, currentticket smallint DEFAULT 1, premium boolean DEFAULT FALSE, setup boolean DEFAULT FALSE);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', logchannel bigint DEFAULT 0, ticketchannel bigint DEFAULT 0, ticketcategory bigint DEFAULT 0, ticketprefix varchar DEFAULT 'ticket', role bigint DEFAULT 0, ticketcount smallint DEFAULT 3, welcomemessage varchar DEFAULT '');")
         await self.db.execute("CREATE TABLE IF NOT EXISTS premium(userid bigint PRIMARY KEY, credits smallint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS tickets(userid bigint, ticketid bigint, serverid bigint);")

@@ -29,7 +29,7 @@ class Database(commands.Cog):
         embed = discord.Embed(
             title=f"CustomQueryInfo \U0000270d", colour=discord.Colour(0xFFA500))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        embed.set_thumbnail(url = self.bot.user.avatar_url)
+        #embed.set_thumbnail(url = self.bot.user.avatar_url)
         embed.add_field(name="Query:", value=f"`{query}`")
         embed.add_field(name="Type:", value=f"`{readOrWrite}`")
         message = await ctx.send(embed=embed)
@@ -52,7 +52,7 @@ class Database(commands.Cog):
                     embed = discord.Embed(
                         title=f"Success \U00002705", colour=discord.Colour(0x32CD32))
                     embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-                    embed.set_thumbnail(url = self.bot.user.avatar_url)
+                    #embed.set_thumbnail(url = self.bot.user.avatar_url)
                     embed.add_field(name="Key|Value:",
                                     value=f"`{key}`|`{value}`")
                     await ctx.send(embed=embed)

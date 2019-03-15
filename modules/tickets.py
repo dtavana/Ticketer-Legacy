@@ -9,6 +9,7 @@ import sys
 import datetime
 import config as cfg
 import uuid
+import typing
 
 class Tickets(commands.Cog):
     def __init__(self, bot):
@@ -20,8 +21,23 @@ class Tickets(commands.Cog):
         role = ctx.guild.get_role(role)
         return role in ctx.author.roles
     
+    async def checkAdmin(self, ctx):
+        bot = ctx.bot
+        role = await bot.get_adminrole(ctx.guild.id)
+        role = ctx.guild.get_role(role)
+        return role in ctx.author.roles
+    
     @commands.command()
-    async def new(self, ctx, *, subject=None):
+    async def new(self, ctx, *, subject: typing.Union[discord.Member, str, None] = None):
+        if isinstance(subject, discord.Member):
+            isAdmin =  await self.checkAdmin(ctx)
+            if not isAdmin:
+                prefix = await self.bot.getPrefix(ctx.guild.id)
+                message = await self.bot.sendError(ctx, f"{ctx.author.mention}, only Ticketer Admins can open tickets for others, use `{prefix}new SUBJECT`")
+                await asyncio.sleep(10)
+                await message.delete()  
+                await ctx.message.delete()  
+                return
         isSetup = await self.bot.get_setup(ctx.guild.id)
         isPremium = await self.bot.get_premium(ctx.guild.id)
         if not isSetup:
@@ -29,6 +45,7 @@ class Tickets(commands.Cog):
             errorMessage = await self.bot.sendError(ctx, f"The server admins have not ran the `{prefix}setup` command yet!")
             await asyncio.sleep(10)
             await errorMessage.delete()
+            await ctx.message.delete()
             return
         ticketchan = await self.bot.get_ticketchan(ctx.guild.id)
         ticketchan = self.bot.get_channel(ticketchan)
@@ -36,6 +53,7 @@ class Tickets(commands.Cog):
             errorMessage = await self.bot.sendError(ctx, f"Please run this command in {ticketchan.mention}")
             await asyncio.sleep(10)
             await errorMessage.delete()
+            await ctx.message.delete()
             return
         data = await self.bot.db.fetch("SELECT * FROM tickets WHERE userid = $1 AND serverid = $2;", ctx.author.id, ctx.guild.id)
         ticketcount = await self.bot.get_ticketcount(ctx.guild.id)
@@ -53,31 +71,62 @@ class Tickets(commands.Cog):
         role = await self.bot.get_adminrole(ctx.guild.id)
         role = ctx.guild.get_role(role)
 
-        overwrites = {
-            self.bot.user: discord.PermissionOverwrite(send_messages=False, read_messages=False),
-            ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
-            ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True),
-            role: discord.PermissionOverwrite(send_messages=True, read_messages=True)
-        }
+
+        if isinstance(subject, discord.Member):
+            overwrites = {
+                self.bot.user: discord.PermissionOverwrite(send_messages=False, read_messages=False),
+                ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
+                ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True),
+                role: discord.PermissionOverwrite(send_messages=True, read_messages=True),
+                subject: discord.PermissionOverwrite(send_messages=True, read_messages=True)
+            }
+        else:
+            overwrites = {
+                self.bot.user: discord.PermissionOverwrite(send_messages=False, read_messages=False),
+                ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
+                ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True),
+                role: discord.PermissionOverwrite(send_messages=True, read_messages=True),
+            }
+
         #newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{currentticket}", category=ticketcategory, overwrites=overwrites)
         newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{channelToken}", category=ticketcategory, overwrites=overwrites)
+        if isinstance(subject, discord.Member):
+            target = subject
+            subject = None 
+        else:
+            target = ctx.author
         await self.bot.db.execute("INSERT INTO tickets (userid, ticketid, serverid) VALUES ($1, $2, $3);", ctx.author.id, newticket.id, ctx.guild.id)
-        await self.bot.sendSuccess(ctx, f"New ticket created: {newticket.mention}.\n\nClick on the ticket in this message to navigate to the ticket.")
-        await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32))
-        await self.bot.newTicket(newticket, subject, welcomemessage, ctx.author)
+        await self.bot.sendNewTicket(ctx, f"{target.mention} your ticket has been opened, click here: {newticket.mention}")
+        await self.bot.sendLog(ctx.guild.id, f"{target.mention} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32))
+        await self.bot.newTicket(newticket, subject, welcomemessage, target)
         await self.bot.increment_ticket(ctx.guild.id)
     
     @commands.command()
-    async def add(self, ctx, user: discord.Member):
-        data = await self.bot.db.fetchrow("SELECT ticketid = $1 AS exists FROM tickets;", ctx.channel.id)
-        if data['exists']:
-            await ctx.channel.set_permissions(user, read_messages=True, send_messages=True)
-            await self.bot.sendSuccess(ctx, f"{user.mention} has been added to this ticket.")
+    @commands.check(ticketeradmin)
+    async def add(self, ctx, user: discord.Member, channel: discord.TextChannel):
+        data = await self.bot.db.fetchrow("SELECT ticketid FROM tickets WHERE ticketid = $1;", channel.id)
+        if data is not None:
+            await channel.set_permissions(user, read_messages=True, send_messages=True)
+            await self.bot.sendSuccess(ctx, f"{user.mention} has been added to {channel.mention}.")
+            await self.bot.sendSuccess(channel, f"{user.mention} has been added to this ticket.")
         else:
-            await self.bot.sendError(ctx, f"You must run this command in a ticket channel.")
-
+            await self.bot.sendError(ctx, f"{channel.mention} was not recognized as a ticket channel.")
+    
     @commands.command()
     @commands.check(ticketeradmin)
+    async def remove(self, ctx, user: discord.Member, channel: typing.Optional[discord.TextChannel]):
+        if channel is None:
+            chanel = ctx.channel
+        data = await self.bot.db.fetchrow("SELECT ticketid FROM tickets WHERE ticketid = $1;", channel.id)
+        if data is not None:
+            await channel.set_permissions(user, read_messages=False, send_messages=False)
+            await self.bot.sendSuccess(ctx, f"{user.mention} has been removed from {channel.mention}.")
+            await self.bot.sendSuccess(channel, f"{user.mention} has been removed from this ticket.")
+        else:
+            await self.bot.sendError(ctx, f"{channel.mention} was not recognized as a ticket channel.")
+
+    @commands.command()
+    #@commands.check(ticketeradmin)
     async def close(self, ctx, *, reason=None):
         data = await self.bot.db.fetchrow("SELECT ticketid FROM tickets WHERE ticketid = $1;", ctx.channel.id)
         if data is not None:

@@ -56,8 +56,8 @@ class Settings(commands.Cog):
         embed = discord.Embed(
             title=f"Setup Info \U0000270d", colour=discord.Colour(0xFFA500))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        embed.set_thumbnail(url = self.bot.user.avatar_url)
-        role = await ctx.guild.create_role(name="Support Team")
+        #embed.set_thumbnail(url = self.bot.user.avatar_url)
+        role = await ctx.guild.create_role(name="Ticketer Admin")
 
         categorychan = await ctx.guild.create_category("TicketerCategory")
 
@@ -68,15 +68,18 @@ class Settings(commands.Cog):
                 # ---GET CHANNEL FOR TICKETS
                 await ctx.send("Please tag the channel you would like to set as the channel to create tickets. **NOTE:** Enter **-1** to not restrict the channel.")
                 ticketchan = await self.bot.wait_for('message', check=validchannelcheck, timeout=120)
-                if(int(ticketchan.content) == -1):
+                if(ticketchan.content == "-1"):
                     ticketchanint = -1
                 else:
                     ticketchanint = int(ticketchan.content[2:-1])
 
                 # ---GET CHANNEL FOR LOGS
-                await ctx.send("Please tag the channel you would like to set as the log channel for tickets.")
+                await ctx.send("Please tag the channel you would like to set as the log channel for tickets. **NOTE:** Enter **-1** to not have a log channel.")
                 logchan = await self.bot.wait_for('message', check=validchannelcheck, timeout=120)
-                logchanint = int(logchan.content[2:-1])
+                if(logchan.content == "-1"):
+                    logchanint = -1
+                else:
+                    logchanint = int(logchan.content[2:-1])
 
                 # ---GET TICKET PREFIX
                 await ctx.send("Please enter what you would like as the ticket prefix. **NOTE**: Must be 10 characters or less!")
@@ -99,6 +102,7 @@ class Settings(commands.Cog):
                 await ctx.send("Please enter the name for the role to be used for a Ticketer Administrator.")
                 rolename = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author, timeout=120)
                 await role.edit(name=rolename.content)
+            
             except asyncio.TimeoutError:
                 await self.bot.sendError(ctx, f'Your current operation timed out. Please re-run the command')
                 try:
@@ -157,7 +161,7 @@ class Settings(commands.Cog):
         embed = discord.Embed(
             title=f"Settings Info \U0000270d", colour=discord.Colour(0xFFA500))
         embed.set_footer(text=f"Ticketer | {embed.timestamp}")
-        embed.set_thumbnail(url = self.bot.user.avatar_url)
+        #embed.set_thumbnail(url = self.bot.user.avatar_url)
         embed.set_author(name=cfg.authorname)
         embed.add_field(name="Type:", value=f"`CLEAR SETTINGS`")
         message = await ctx.send(embed=embed)

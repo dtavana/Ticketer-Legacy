@@ -25,7 +25,7 @@ class Information(commands.Cog):
         embed = discord.Embed(
             title=f"Ticketer", colour=discord.Colour(0x32CD32))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        embed.set_thumbnail(url = self.bot.user.avatar_url)
+        #embed.set_thumbnail(url = self.bot.user.avatar_url)
         if not ticketchan:
             embed.add_field(name=f"Welcome to {member.guild}!", value=f"For support, type `{prefix}new SUBJECT` and replace subject with a brief topic. You may then post any info in the created channel.\n\n")
         else:
@@ -49,11 +49,11 @@ class Information(commands.Cog):
         embed = discord.Embed(
             title=f"Ticketer", colour=discord.Colour(0x32CD32))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        embed.set_thumbnail(url = self.bot.user.avatar_url)
+        #embed.set_thumbnail(url = self.bot.user.avatar_url)
         embed.add_field(
             name=f"Thank you for inviting me to {guild}!", value=f"My prefix is `{prefix}`. To start, please run `{prefix}setup`. You may view all of my current features using `{prefix}features`. You may upgrade these features by paying a one-time fee of **$5** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
         await owner.send(embed=embed)
-        await owner.send("https://discord.gg/uzygVc2")
+        await owner.send("https://discord.gg/5kNM5Sh")
     
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
@@ -73,12 +73,16 @@ class Information(commands.Cog):
     @commands.command()
     async def support(self, ctx):
         await ctx.send("Please join the official Ticketer support server for more detailed support.")
-        await ctx.send("https://discord.gg/uzygVc2")
+        await ctx.send("https://discord.gg/5kNM5Sh")
     
     @commands.command()
     async def upgrade(self, ctx):
         await ctx.send("For only **$5**, you can upgrade to have so many more features and support Ticketer at the same time! Please join the offical support server for more information.")
-        await ctx.send("https://discord.gg/uzygVc2")
+        await ctx.send("https://discord.gg/5kNM5Sh")
+    
+    @commands.command()
+    async def inviteme(self, ctx):
+        await self.bot.sendSuccess(ctx, f"To invite me, [click here](https://discordapp.com/oauth2/authorize?client_id=542709669211275296&scope=bot&permissions=8)")
     
     @commands.command(aliases=['statistics'])
     @commands.is_owner()
@@ -100,7 +104,7 @@ class Information(commands.Cog):
         memory_percent = psutil.virtual_memory()[2]
 
         e = discord.Embed(color=discord.Color.dark_blue())
-        e.set_thumbnail(url = self.bot.user.avatar_url)
+        #e.set_thumbnail(url = self.bot.user.avatar_url)
         e.add_field(name="Bot Stats", value=f"**Coder:** {cfg.authorname}\n"
                                             f"**Commands:** {len(self.bot.commands)}\n"
                                             f"**Cogs:** {len(self.bot.cogs)}\n", inline=False)

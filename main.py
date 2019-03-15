@@ -102,40 +102,44 @@ class Ticketer(commands.Bot):
     
     async def sendSuccess(self, target, valString):
         embed = discord.Embed(
-            title=f"**Success** \U00002705", colour=discord.Colour(0x32CD32))
+            title=f"**Success** \U00002705", description=valString, colour=discord.Colour(0x32CD32))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        embed.set_thumbnail(url = self.user.avatar_url)
-        embed.add_field(
-            name="Data:", value=valString)
+        #embed.set_thumbnail(url = self.user.avatar_url)
+        return await target.send(embed=embed)
+    
+    async def sendNewTicket(self, target, valString):
+        embed = discord.Embed(
+            description=valString, colour=discord.Colour(0x32CD32))
+        embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+        #embed.set_thumbnail(url = self.user.avatar_url)
         return await target.send(embed=embed)
     
     async def sendError(self, target, valString):
         embed = discord.Embed(
-            title=f"**Error** \U0000274c", colour=discord.Colour(0xf44b42))
+            title=f"**Error** \U0000274c", description=valString, colour=discord.Colour(0xf44b42))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        embed.set_thumbnail(url = self.user.avatar_url)
-        embed.add_field(
-            name="Data:", value=valString)
+        #embed.set_thumbnail(url = self.user.avatar_url)
         return await target.send(embed=embed)
     
     async def sendLog(self, guildid, valString, color):
         logchanid = await self.get_logchan(guildid)
+        if logchanid == -1:
+            return
         target = self.get_channel(logchanid)
+        if target is None:
+            return
         embed = discord.Embed(
-            title=f"**Log** \U0001f5d2", colour=color)
+            title=f"**Log** \U0001f5d2", description=valString, colour=color)
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        embed.set_thumbnail(url = self.user.avatar_url)
-        embed.add_field(
-            name="Data:", value=valString)
+        #embed.set_thumbnail(url = self.user.avatar_url)
         await target.send(embed=embed)
     
     async def newTicket(self, target, subject, welcomemessage, user):
+        await target.send(user.mention)
         embed = discord.Embed(
-            title=f"New Ticket \U00002705", colour=discord.Colour(0x32CD32), description=welcomemessage)
+            colour=discord.Colour(0x32CD32), description=welcomemessage)
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        embed.set_thumbnail(url = self.user.avatar_url)
-        embed.add_field(
-            name="User:", value=f"{user.mention}")
+        #embed.set_thumbnail(url = self.user.avatar_url)
         embed.add_field(
             name="Subject:", value=f"`{subject}`")
         await target.send(embed=embed)
@@ -150,7 +154,7 @@ class Ticketer(commands.Bot):
                 print(f"Failed to load extensions {ext}")
                 print(f"{type(e).__name__}: {e}")
         super().run(cfg.token)
-    
+
     async def on_ready(self,):
         print("Bot loaded")
         print(f"Logged in as: {self.user}")

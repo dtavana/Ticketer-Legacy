@@ -33,39 +33,32 @@ class Tickets(commands.Cog):
             isAdmin =  await self.checkAdmin(ctx)
             if not isAdmin:
                 prefix = await self.bot.getPrefix(ctx.guild.id)
-                message = await self.bot.sendError(ctx, f"{ctx.author.mention}, only Ticketer Admins can open tickets for others, use `{prefix}new SUBJECT`")
-                await asyncio.sleep(10)
-                await message.delete()  
-                await ctx.message.delete()  
+                message = await self.bot.sendError(ctx, f"{ctx.author.mention}, only Ticketer Admins can open tickets for others, use `{prefix}new SUBJECT`", ctx.message, ctx.guild)
                 return
         isSetup = await self.bot.get_setup(ctx.guild.id)
         isPremium = await self.bot.get_premium(ctx.guild.id)
         if not isSetup:
             prefix = await self.bot.getPrefix(ctx.guild.id)
-            errorMessage = await self.bot.sendError(ctx, f"The server admins have not ran the `{prefix}setup` command yet!")
-            await asyncio.sleep(10)
-            await errorMessage.delete()
-            await ctx.message.delete()
+            await self.bot.sendError(ctx, f"The server admins have not ran the `{prefix}setup` command yet!", ctx.message, ctx.guild)
             return
         ticketchan = await self.bot.get_ticketchan(ctx.guild.id)
         ticketchan = self.bot.get_channel(ticketchan)
         if ticketchan is not None and ctx.channel is not ticketchan and isPremium:
-            errorMessage = await self.bot.sendError(ctx, f"Please run this command in {ticketchan.mention}")
-            await asyncio.sleep(10)
-            await errorMessage.delete()
-            await ctx.message.delete()
+            await self.bot.sendError(ctx, f"Please run this command in {ticketchan.mention}", ctx.message, ctx.guild)
             return
         data = await self.bot.db.fetch("SELECT * FROM tickets WHERE userid = $1 AND serverid = $2;", ctx.author.id, ctx.guild.id)
         ticketcount = await self.bot.get_ticketcount(ctx.guild.id)
         if len(data) + 1 > ticketcount and ticketcount != -1:
-            await self.bot.sendError(ctx, f"{ctx.author.mention} has the max amount of tickets one can have.")
+            await self.bot.sendError(ctx, f"{ctx.author.mention} has the max amount of tickets one can have.", ctx.message, ctx.guild)
             return
         ticketcategoryint = await self.bot.get_ticketcategory(ctx.guild.id)
         ticketcategory = self.bot.get_channel(ticketcategoryint)
         currentticket = await self.bot.get_currentticket(ctx.guild.id)
+        '''
         channelToken = str(uuid.uuid4())
         channelToken = channelToken[:channelToken.find('-')]
         channelToken = channelToken[::2]
+        '''
         ticketprefix = await self.bot.get_ticketprefix(ctx.guild.id)
         welcomemessage = await self.bot.get_welcomemessage(ctx.guild.id)
         role = await self.bot.get_adminrole(ctx.guild.id)
@@ -88,16 +81,16 @@ class Tickets(commands.Cog):
                 role: discord.PermissionOverwrite(send_messages=True, read_messages=True),
             }
 
-        #newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{currentticket}", category=ticketcategory, overwrites=overwrites)
-        newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{channelToken}", category=ticketcategory, overwrites=overwrites)
+        newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{currentticket}", category=ticketcategory, overwrites=overwrites)
+        #newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{channelToken}", category=ticketcategory, overwrites=overwrites)
         if isinstance(subject, discord.Member):
             target = subject
             subject = None 
         else:
             target = ctx.author
         await self.bot.db.execute("INSERT INTO tickets (userid, ticketid, serverid) VALUES ($1, $2, $3);", ctx.author.id, newticket.id, ctx.guild.id)
-        await self.bot.sendNewTicket(ctx, f"{target.mention} your ticket has been opened, click here: {newticket.mention}")
-        await self.bot.sendLog(ctx.guild.id, f"{target.mention} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32))
+        await self.bot.sendNewTicket(ctx, f"{target.mention} your ticket has been opened, click here: {newticket.mention}", ctx.message, ctx.guild)
+        await self.bot.sendLog(ctx.guild.id, f"{target} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32))
         await self.bot.newTicket(newticket, subject, welcomemessage, target)
         await self.bot.increment_ticket(ctx.guild.id)
     
@@ -110,7 +103,7 @@ class Tickets(commands.Cog):
             await self.bot.sendSuccess(ctx, f"{user.mention} has been added to {channel.mention}.")
             await self.bot.sendSuccess(channel, f"{user.mention} has been added to this ticket.")
         else:
-            await self.bot.sendError(ctx, f"{channel.mention} was not recognized as a ticket channel.")
+            await self.bot.sendError(ctx, f"{channel.mention} was not recognized as a ticket channel.", ctx.message, ctx.guild)
     
     @commands.command()
     @commands.check(ticketeradmin)
@@ -123,7 +116,7 @@ class Tickets(commands.Cog):
             await self.bot.sendSuccess(ctx, f"{user.mention} has been removed from {channel.mention}.")
             await self.bot.sendSuccess(channel, f"{user.mention} has been removed from this ticket.")
         else:
-            await self.bot.sendError(ctx, f"{channel.mention} was not recognized as a ticket channel.")
+            await self.bot.sendError(ctx, f"{channel.mention} was not recognized as a ticket channel.", ctx.message, ctx.guild)
 
     @commands.command()
     #@commands.check(ticketeradmin)
@@ -146,12 +139,12 @@ class Tickets(commands.Cog):
             await self.bot.db.execute("DELETE FROM tickets WHERE ticketid = $1;", ctx.channel.id)
             await ctx.channel.delete(reason="Closing ticket.")
         else:
-            await self.bot.sendError(ctx, f"You must run this command in a ticket channel.")
+            await self.bot.sendError(ctx, f"You must run this command in a ticket channel.", ctx.message, ctx.guild)
 
     @commands.command()
     @commands.check(ticketeradmin)
     async def closeall(self, ctx):
-        await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
+        initQuestion = await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
         embed = discord.Embed(
             title=f"Ticketer Management \U0000270d", colour=discord.Colour(0xFFA500))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
@@ -166,8 +159,7 @@ class Tickets(commands.Cog):
         reaction, user = await self.bot.wait_for('reaction_add', check=reactioncheck, timeout=30)
         # Check if thumbs up
         if reaction.emoji != "\U0001f44d":
-            await ctx.send("Command Cancelled")
-            return
+            return await self.bot.sendError(ctx, "Command Cancelled", [ctx.message, initQuestion, message], ctx.guild)
         
         tickets = await self.bot.db.fetch("SELECT ticketid FROM tickets WHERE serverid = $1;", ctx.guild.id)
         for ticket in tickets:
@@ -182,18 +174,22 @@ class Tickets(commands.Cog):
     @commands.command()
     @commands.check(ticketeradmin)
     async def blacklist(self, ctx, user: discord.Member):
-        await self.bot.db.execute("INSERT INTO blacklist (userid, serverid) VALUES ($1, $2);", user.id, ctx.guild.id)
-        await self.bot.sendSuccess(ctx, f"{user.mention} has been blacklisted.")
+        data = await self.bot.db.fetchrow("SELECT userid FROM blacklist WHERE serverid = $2 AND userid = $3;", user.id, ctx.guild.id, user.id)
+        if data is None:
+            await self.bot.db.execute("INSERT INTO blacklist (userid, serverid) VALUES ($1, $2);", user.id, ctx.guild.id)
+            await self.bot.sendSuccess(ctx, f"{user.mention} has been blacklisted.")
+        else:
+            await self.bot.sendError(ctx, f"{user.mention} is already in the blacklist.", ctx.message, ctx.guild)
     
     @commands.command()
     @commands.check(ticketeradmin)
     async def unblacklist(self, ctx, user: discord.Member):
-        data = await self.bot.db.fetchrow("SELECT userid = $1 AS exists FROM blacklist WHERE serverid = $2;", user.id, ctx.guild.id)
-        if data['exists']:
+        data = await self.bot.db.fetchrow("SELECT userid FROM blacklist WHERE serverid = $2 AND userid = $3;", user.id, ctx.guild.id, user.id)
+        if data is not None:
             await self.bot.db.execute("DELETE FROM blacklist WHERE userid = $1 AND serverid = $2;", user.id, ctx.guild.id)
             await self.bot.sendSuccess(ctx, f"{user.mention} has been removed from the blacklist.")
         else:
-            await self.bot.sendError(ctx, f"{user.mention} was not found in the blacklist.")
+            await self.bot.sendError(ctx, f"{user.mention} was not found in the blacklist.", ctx.message, ctx.guild)
     
     
     

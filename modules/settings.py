@@ -68,6 +68,9 @@ class Settings(commands.Cog):
                 await self.bot.sendSuccess(ctx, f"Create ticket channel is now unbounded", [ctx.message, message, ticketchan], ctx.guild)
             else:
                 await self.bot.sendSuccess(ctx, f"Create ticket channel is now {ticketchan.content}", [ctx.message, message, ticketchan], ctx.guild)
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
     
     @commands.command()
     @commands.has_permissions(administrator=True)
@@ -101,7 +104,10 @@ class Settings(commands.Cog):
                 await self.bot.sendSuccess(ctx, f"Log channel is now unbounded", [ctx.message, message, logchan], ctx.guild)
             else:
                 await self.bot.sendSuccess(ctx, f"Log channel is now {logchan.content}", [ctx.message, message, logchan], ctx.guild)
-    
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+
     @commands.command()
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
@@ -118,7 +124,10 @@ class Settings(commands.Cog):
 
             await self.bot.db.execute("UPDATE settings SET ticketprefix = $1 WHERE serverid = $2;", ticketprefix.content, ctx.guild.id)
             await self.bot.sendSuccess(ctx, f"Ticket Prefix is now set to `{ticketprefix.content}`", [ctx.message, message, ticketprefix], ctx.guild)
-    
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+            
     @commands.command()
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
@@ -135,7 +144,10 @@ class Settings(commands.Cog):
 
             await self.bot.db.execute("UPDATE settings SET welcomemessage = $1 WHERE serverid = $2;", welcomemessage.content, ctx.guild.id)
             await self.bot.sendSuccess(ctx, f"Welcome Message is now set to:\n\n{welcomemessage.content}", [ctx.message, message, welcomemessage], ctx.guild)
-    
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+            
     @commands.command()
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
@@ -163,7 +175,10 @@ class Settings(commands.Cog):
                 await self.bot.sendSuccess(ctx, f"Ticket Count is now set to `Unlimited`", [ctx.message, message, ticketcount], ctx.guild)
             else:
                 await self.bot.sendSuccess(ctx, f"Ticket Count is now set to `{ticketcountint}`", [ctx.message, message, ticketcount], ctx.guild)
-    
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+            
     @commands.command()
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
@@ -180,7 +195,10 @@ class Settings(commands.Cog):
 
             await self.bot.db.execute("UPDATE settings SET prefix = $1 WHERE serverid = $2;", prefix.content, ctx.guild.id)
             await self.bot.sendSuccess(ctx, f"Command Prefix is now set to `{prefix.content}`", [ctx.message, message, prefix], ctx.guild)
-    
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+            
     @commands.command()
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
@@ -201,7 +219,10 @@ class Settings(commands.Cog):
                 dmonjoindata = False
             await self.bot.db.execute("UPDATE settings SET dmonjoin = $1 WHERE serverid = $2;", dmonjoindata, ctx.guild.id)
             await self.bot.sendSuccess(ctx, f"DM On Join is now set to `{dmonjoindata}`", [ctx.message, message, dmonjoin], ctx.guild)
-    
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+            
     @commands.command()
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
@@ -222,7 +243,10 @@ class Settings(commands.Cog):
                 cleannewdata = False
             await self.bot.db.execute("UPDATE settings SET cleannew = $1 WHERE serverid = $2;", cleannewdata, ctx.guild.id)
             await self.bot.sendSuccess(ctx, f"Clean New Ticket Invocations is now set to `{cleannewdata}`", [ctx.message, message, cleannew], ctx.guild)
-    
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+            
     @commands.command()
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
@@ -243,7 +267,10 @@ class Settings(commands.Cog):
                 cleanalldata = False
             await self.bot.db.execute("UPDATE settings SET cleanall = $1 WHERE serverid = $2;", cleanalldata, ctx.guild.id)
             await self.bot.sendSuccess(ctx, f"Clean All Invocations is now set to `{cleanalldata}`", [ctx.message, message, cleanall], ctx.guild)
-    
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+            
     @commands.command()
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
@@ -264,7 +291,10 @@ class Settings(commands.Cog):
                 enforcesubjectdata = False
             await self.bot.db.execute("UPDATE settings SET enforcesubject = $1 WHERE serverid = $2;", enforcesubjectdata, ctx.guild.id)
             await self.bot.sendSuccess(ctx, f"Enforcing Subject is now set to `{enforcesubjectdata}`", [ctx.message, message, enforcesubject], ctx.guild)
-    
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+            
     @commands.command()
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
@@ -285,7 +315,10 @@ class Settings(commands.Cog):
                 transcriptsdata = False
             await self.bot.db.execute("UPDATE settings SET sendtranscripts = $1 WHERE serverid = $2;", transcriptsdata, ctx.guild.id)
             await self.bot.sendSuccess(ctx, f"Sending Transcripts is now set to `{transcriptsdata}`", [ctx.message, message, transcripts], ctx.guild)
-    
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+            
     @commands.command()
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
@@ -305,8 +338,11 @@ class Settings(commands.Cog):
             else:
                 adminclosedata = False
             await self.bot.db.execute("UPDATE settings SET adminclose = $1 WHERE serverid = $2;", adminclosedata, ctx.guild.id)
-            await self.bot.sendSuccess(ctx, f"Admin Closing Tickets is now set to `{adminclosedata}`", [ctx.message, message, adminclose], ctx.guild)
-
+            await self.bot.sendSuccess(ctx, f"Admin Only Ticket Close is now set to `{adminclosedata}`", [ctx.message, message, adminclose], ctx.guild)
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+            
     @commands.command()
     @commands.has_permissions(administrator=True)
     @commands.guild_only()

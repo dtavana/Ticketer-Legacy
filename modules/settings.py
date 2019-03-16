@@ -338,7 +338,7 @@ class Settings(commands.Cog):
             else:
                 adminclosedata = False
             await self.bot.db.execute("UPDATE settings SET adminclose = $1 WHERE serverid = $2;", adminclosedata, ctx.guild.id)
-            await self.bot.sendSuccess(ctx, f"Admin Closing Tickets is now set to `{adminclosedata}`", [ctx.message, message, adminclose], ctx.guild)
+            await self.bot.sendSuccess(ctx, f"Admin Only Ticket Close is now set to `{adminclosedata}`", [ctx.message, message, adminclose], ctx.guild)
         else:
             prefix = await self.bot.getPrefix(ctx.guild.id)
             await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)

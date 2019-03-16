@@ -26,7 +26,7 @@ class Tickets(commands.Cog):
             if len(message.embeds) > 0:
                 pastecode += "<EMBED>\n"
             else:
-                pastecode += (message.content + "\n")
+                pastecode += (str(message.author) + ": " + message.content + "\n")
         
         URL = "https://pastebin.com/api/api_post.php"
         
@@ -134,7 +134,7 @@ class Tickets(commands.Cog):
         welcomemessage = welcomemessage.replace(":server:", str(ctx.guild))
 
         await self.bot.db.execute("INSERT INTO tickets (userid, ticketid, serverid) VALUES ($1, $2, $3);", target.id, newticket.id, ctx.guild.id)
-        await self.bot.newTicket(newticket, subject, welcomemessage, target, ctx.guild)
+        await self.bot.newTicket(newticket, subject, welcomemessage, target)
         await self.bot.sendLog(ctx.guild.id, f"{target} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32))
         await self.bot.sendNewTicket(ctx, f"{target.mention} your ticket has been opened, click here: {newticket.mention}", ctx.message, ctx.guild)
         await self.bot.increment_ticket(ctx.guild.id)
@@ -186,6 +186,9 @@ class Tickets(commands.Cog):
                 if isPremium and sendTranscripts:
                     transcripturl = await self.create_transcript(ctx.channel, ctx.guild)
                     await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** [Click here]({transcripturl})", discord.Colour(0xf44b42))
+                    ticketowner = await self.bot.get_ticketowner(ctx.channel.id)
+                    ticketowner = ctx.guild.get_member(ticketowner)
+                    await self.bot.sendSuccess(ticketowner, f"[Click here]({transcripturl}) to view the transcript for {ctx.channel}")
                 else:
                     await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed `{ctx.channel}`\n**Reason:** `{reason}`", discord.Colour(0xf44b42))
                 await self.bot.db.execute("DELETE FROM tickets WHERE ticketid = $1;", ctx.channel.id)

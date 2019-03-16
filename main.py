@@ -73,6 +73,10 @@ class Ticketer(commands.Bot):
         res = await self.db.fetchrow("SELECT cleanall FROM settings WHERE serverid = $1;", guildid)
         return res['cleanall']
     
+    async def get_ticketowner(self, ticketid):
+        res = await self.db.fetchrow("SELECT userid FROM tickets WHERE ticketid = $1;", ticketid)
+        return res['userid']
+    
     async def increment_ticket(self, guildid):
         await self.db.execute("UPDATE servers SET currentticket = currentticket + 1 WHERE serverid = $1;", guildid)
     

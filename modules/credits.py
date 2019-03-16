@@ -31,7 +31,7 @@ class Credits(commands.Cog):
         hasPremium = hasPremium['premium']
         if sufficient:
             if not hasPremium:
-                initMessage = await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
+                initQuestion = await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
                 embed = discord.Embed(title=f"Redeem Premium \U0000270d", colour=discord.Colour(0xFFA500))
                 embed.set_footer(text=f"Ticketer | {cfg.authorname}")
                 #embed.set_thumbnail(url = self.bot.user.avatar_url)
@@ -51,7 +51,7 @@ class Credits(commands.Cog):
                 await self.bot.db.execute("DELETE from premium WHERE credits <= 0 AND userid = $1;", ctx.author.id)
                 await self.bot.db.execute("UPDATE servers SET premium = TRUE WHERE serverid = $1;", ctx.guild.id)
                 prefix = await self.bot.getPrefix(ctx.guild.id)
-                await self.bot.sendSuccess(ctx, f"`{ctx.guild}` now has premium enabled! Rerun `{prefix}setup` in order to utilize premium fully!\n\nThank you for using Ticketer.", [ctx.message, initQuestion, message], ctx.guild)
+                await self.bot.sendSuccess(ctx, f"`{ctx.guild}` now has premium enabled! Take a look at `{prefix}help` under the settings category in order to utilize premium fully!\n\nThank you for using Ticketer.", [ctx.message, initQuestion, message], ctx.guild)
             else:
                 await self.bot.sendError(ctx, f"`{ctx.guild}` already has premium enabled!", ctx.message, ctx.guild)
         else:
@@ -72,7 +72,7 @@ class Credits(commands.Cog):
     @commands.check(premium_admins)
     @commands.command(hidden=True)
     async def giftpremium(self, ctx, target: discord.Member, amount = 1):
-        await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
+        initQuestion = await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
         embed = discord.Embed(
             title=f"Premium Gift \U0000270d", colour=discord.Colour(0xFFA500))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
@@ -88,8 +88,7 @@ class Credits(commands.Cog):
         reaction, user = await self.bot.wait_for('reaction_add', check=reactioncheck, timeout=30)
         # Check if thumbs up
         if reaction.emoji != "\U0001f44d":
-            await ctx.send("Command Cancelled")
-            return
+            return await self.bot.sendError(ctx, "Command Cancelled", [ctx.message, initQuestion, message], ctx.guild)
         try:
             await self.bot.db.execute("INSERT INTO premium (userid, credits) VALUES ($1, $2);", target.id, amount) 
         except:
@@ -97,7 +96,7 @@ class Credits(commands.Cog):
 
         newcredits = await self.bot.db.fetchrow("SELECT credits FROM premium WHERE userid = $1;", target.id)
         newcredits = newcredits['credits']
-        await self.bot.sendSuccess(ctx, f"{target.mention} has received {amount} credits and now has {newcredits} credits.")
+        await self.bot.sendSuccess(ctx, f"{target.mention} has received {amount} credits and now has {newcredits} credits.", [ctx.message, initQuestion, message], ctx.guild)
     
     @credits.error
     async def credits_handler(self, ctx, error):
@@ -108,7 +107,7 @@ class Credits(commands.Cog):
             seconds = round(seconds, 2)
             hours, remainder = divmod(int(seconds), 3600)
             minutes, seconds = divmod(remainder, 60)
-            await ctx.send(f"You are on cooldown! Please try again in **{seconds} seconds**")
+            await self.bot.sendError(ctx, f"You are on cooldown! Please try again in **{seconds} seconds**", ctx.message, ctx.guild)
 
 def setup(bot):
     bot.add_cog(Credits(bot))

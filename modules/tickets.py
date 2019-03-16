@@ -10,16 +10,55 @@ import datetime
 import config as cfg
 import uuid
 import typing
+import aiohttp
 
 class Tickets(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    async def create_transcript(self, channel, guild):
+        pastecode = ""
+        initMessage = True
+        async for message in channel.history(reverse=True):
+            if initMessage:
+                initMessage = False
+                continue
+            if len(message.embeds) > 0:
+                pastecode += "<EMBED>\n"
+            else:
+                pastecode += (message.content + "\n")
+        
+        URL = "https://pastebin.com/api/api_post.php"
+        
+        payload = {
+            "api_dev_key": "e075c7d3f1892a15fd1f173d5e1f0418",
+            "api_option": "paste",
+            "api_paste_code": pastecode,
+            "api_paste_name": f"{guild}_{channel}",
+            "api_paste_private": 1,
+            "api_paste_format": "css",
+            "api_paste_expire_date": "1W"
+        }
+
+        async with aiohttp.ClientSession() as cs:
+            async with cs.post(URL, data=payload) as r:
+                data = await r.text()
+        
+        return data
+
+    
     async def ticketeradmin(ctx):
         bot = ctx.bot
         role = await bot.get_adminrole(ctx.guild.id)
         role = ctx.guild.get_role(role)
         return role in ctx.author.roles
+    
+    async def closeonlyadmin(self, ctx):
+        bot = ctx.bot
+        role = await bot.get_adminrole(ctx.guild.id)
+        role = ctx.guild.get_role(role)
+        adminclose = await ctx.bot.get_adminclose(ctx.guild.id)
+        return role in ctx.author.roles or adminclose
     
     async def checkAdmin(self, ctx):
         bot = ctx.bot
@@ -29,6 +68,10 @@ class Tickets(commands.Cog):
     
     @commands.command()
     async def new(self, ctx, *, subject: typing.Union[discord.Member, str, None] = None):
+        enforce_subject = await self.bot.get_enforcesubject(ctx.guild.id)
+        prefix = await self.bot.getPrefix(ctx.guild.id)
+        if enforce_subject and subject is None:
+            return await self.bot.sendError(ctx, f"The server admins have made it required to use a subject. Please use `{prefix}new SUBJECT` or if you are an admin, `{prefix}new @USER SUBJECT` to create a ticket.", ctx.message, ctx.guild)
         if isinstance(subject, discord.Member):
             isAdmin =  await self.checkAdmin(ctx)
             if not isAdmin:
@@ -67,31 +110,33 @@ class Tickets(commands.Cog):
 
         if isinstance(subject, discord.Member):
             overwrites = {
-                self.bot.user: discord.PermissionOverwrite(send_messages=False, read_messages=False),
                 ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
-                ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True),
-                role: discord.PermissionOverwrite(send_messages=True, read_messages=True),
-                subject: discord.PermissionOverwrite(send_messages=True, read_messages=True)
+                ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+                role: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+                subject: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
             }
         else:
             overwrites = {
-                self.bot.user: discord.PermissionOverwrite(send_messages=False, read_messages=False),
                 ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
-                ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True),
-                role: discord.PermissionOverwrite(send_messages=True, read_messages=True),
+                ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+                role: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
             }
 
         newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{currentticket}", category=ticketcategory, overwrites=overwrites)
         #newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{channelToken}", category=ticketcategory, overwrites=overwrites)
         if isinstance(subject, discord.Member):
             target = subject
-            subject = None 
+            subject = None
         else:
             target = ctx.author
-        await self.bot.db.execute("INSERT INTO tickets (userid, ticketid, serverid) VALUES ($1, $2, $3);", ctx.author.id, newticket.id, ctx.guild.id)
-        await self.bot.sendNewTicket(ctx, f"{target.mention} your ticket has been opened, click here: {newticket.mention}", ctx.message, ctx.guild)
+        
+        welcomemessage = welcomemessage.replace(":user:", target.mention)
+        welcomemessage = welcomemessage.replace(":server:", str(ctx.guild))
+
+        await self.bot.db.execute("INSERT INTO tickets (userid, ticketid, serverid) VALUES ($1, $2, $3);", target.id, newticket.id, ctx.guild.id)
+        await self.bot.newTicket(newticket, subject, welcomemessage, target, ctx.guild)
         await self.bot.sendLog(ctx.guild.id, f"{target} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32))
-        await self.bot.newTicket(newticket, subject, welcomemessage, target)
+        await self.bot.sendNewTicket(ctx, f"{target.mention} your ticket has been opened, click here: {newticket.mention}", ctx.message, ctx.guild)
         await self.bot.increment_ticket(ctx.guild.id)
     
     @commands.command()
@@ -119,28 +164,36 @@ class Tickets(commands.Cog):
             await self.bot.sendError(ctx, f"{channel.mention} was not recognized as a ticket channel.", ctx.message, ctx.guild)
 
     @commands.command()
-    #@commands.check(ticketeradmin)
     async def close(self, ctx, *, reason=None):
-        data = await self.bot.db.fetchrow("SELECT ticketid FROM tickets WHERE ticketid = $1;", ctx.channel.id)
-        if data is not None:
-            if(reason is None):
-                message = await ctx.send(f"Are you sure you would like to close {ctx.channel.mention}? If yes, react with a Thumbs Up. Otherwise, react with a Thumbs Down")
-                await message.add_reaction("\U0001f44d")
-                await message.add_reaction("\U0001f44e")
-                def reactioncheck(reaction, user):
-                    validreactions = ["\U0001f44d", "\U0001f44e"]
-                    return user.id == ctx.author.id and reaction.emoji in validreactions
-                reaction, user = await self.bot.wait_for('reaction_add', check=reactioncheck, timeout=30)
-                # Check if thumbs up
-                if reaction.emoji != "\U0001f44d":
-                    await ctx.send("Command Cancelled")
-                    return
-            await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed `{ctx.channel}`\n\n**Reason:** `{reason}`", discord.Colour(0xf44b42))
-            await self.bot.db.execute("DELETE FROM tickets WHERE ticketid = $1;", ctx.channel.id)
-            await ctx.channel.delete(reason="Closing ticket.")
+        close_data = await self.closeonlyadmin(ctx)
+        if close_data:
+            data = await self.bot.db.fetchrow("SELECT ticketid FROM tickets WHERE ticketid = $1;", ctx.channel.id)
+            if data is not None:
+                if(reason is None):
+                    message = await ctx.send(f"Are you sure you would like to close {ctx.channel.mention}? If yes, react with a Thumbs Up. Otherwise, react with a Thumbs Down")
+                    await message.add_reaction("\U0001f44d")
+                    await message.add_reaction("\U0001f44e")
+                    def reactioncheck(reaction, user):
+                        validreactions = ["\U0001f44d", "\U0001f44e"]
+                        return user.id == ctx.author.id and reaction.emoji in validreactions
+                    reaction, user = await self.bot.wait_for('reaction_add', check=reactioncheck, timeout=30)
+                    # Check if thumbs up
+                    if reaction.emoji != "\U0001f44d":
+                        await ctx.send("Command Cancelled")
+                        return
+                isPremium = await self.bot.get_premium(ctx.guild.id)
+                sendTranscripts = await self.bot.get_sendtranscripts(ctx.guild.id)
+                if isPremium and sendTranscripts:
+                    transcripturl = await self.create_transcript(ctx.channel, ctx.guild)
+                    await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** [Click here]({transcripturl})", discord.Colour(0xf44b42))
+                else:
+                    await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed `{ctx.channel}`\n**Reason:** `{reason}`", discord.Colour(0xf44b42))
+                await self.bot.db.execute("DELETE FROM tickets WHERE ticketid = $1;", ctx.channel.id)
+                await ctx.channel.delete(reason="Closing ticket.")
+            else:
+                await self.bot.sendError(ctx, f"You must run this command in a ticket channel.", ctx.message, ctx.guild)
         else:
-            await self.bot.sendError(ctx, f"You must run this command in a ticket channel.", ctx.message, ctx.guild)
-
+            await self.bot.sendError(ctx, "The server admins have disallowed non admins to close tickets.", ctx.message, ctx.guild)
     @commands.command()
     @commands.check(ticketeradmin)
     async def closeall(self, ctx):
@@ -170,6 +223,7 @@ class Tickets(commands.Cog):
                     pass
         await self.bot.db.execute("DELETE FROM tickets WHERE serverid = $1;", ctx.guild.id)
         await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed all tickets.", discord.Colour(0xf44b42))
+        await self.bot.sendSuccess(ctx, "All tickets have been closed.", [ctx.message, initQuestion, message], ctx.guild)
     
     @commands.command()
     @commands.check(ticketeradmin)

@@ -129,14 +129,14 @@ class Ticketer(commands.Bot):
         embed = discord.Embed(
             title=f"**Success** \U00002705", description=valString, colour=discord.Colour(0x32CD32))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        message = await target.send(embed=embed)
+        success_message = await target.send(embed=embed)
         if origMessages is not None and guild is not None:
             toClean = None
             isPremium = await self.get_premium(guild.id)
             if isPremium:
                 toClean = await self.get_cleanall(guild.id)
                 if toClean:
-                    if isinstance(origMessages, str):
+                    if isinstance(origMessages, discord.Message):
                         origMessages = [origMessages]
                     await asyncio.sleep(10)
                     for message in origMessages:
@@ -145,17 +145,16 @@ class Ticketer(commands.Bot):
                         except:
                             pass
                     try:
-                        await message.delete()
+                        await success_message.delete()
                     except:
                         pass
         else:
-            return message
+            return success_message
     
     async def sendNewTicket(self, target, valString, origMessage=None, guild=None):
         embed = discord.Embed(
             description=valString, colour=discord.Colour(0x32CD32))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        #embed.set_thumbnail(url = self.user.avatar_url)
         message = await target.send(embed=embed)
         if origMessage is not None and guild is not None:
             toClean = None
@@ -179,14 +178,14 @@ class Ticketer(commands.Bot):
         embed = discord.Embed(
             title=f"**Error** \U0000274c", description=valString, colour=discord.Colour(0xf44b42))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        message = await target.send(embed=embed)
+        error_message = await target.send(embed=embed)
         if origMessages is not None and guild is not None:
             toClean = None
             isPremium = await self.get_premium(guild.id)
             if isPremium:
                 toClean = await self.get_cleanall(guild.id)
                 if toClean:
-                    if isinstance(origMessages, str):
+                    if isinstance(origMessages, discord.Message):
                         origMessages = [origMessages]
                     await asyncio.sleep(10)
                     for message in origMessages:
@@ -195,11 +194,11 @@ class Ticketer(commands.Bot):
                         except:
                             pass
                     try:
-                        await message.delete()
+                        await error_message.delete()
                     except:
                         pass
         else:
-            return message
+            return error_message
     
     async def sendLog(self, guildid, valString, color):
         logchanid = await self.get_logchan(guildid)
@@ -216,6 +215,7 @@ class Ticketer(commands.Bot):
     
     async def newTicket(self, target, subject, welcomemessage, user):
         await target.send(user.mention)
+        await asyncio.sleep(1)
         embed = discord.Embed(
             colour=discord.Colour(0x32CD32), description=welcomemessage)
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")

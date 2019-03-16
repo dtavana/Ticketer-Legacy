@@ -16,6 +16,9 @@ class Information(commands.Cog):
     
     @commands.Cog.listener()
     async def on_member_join(self, member):
+        dmonjoin = await self.bot.get_dmonjoin(member.guild.id)
+        if not dmonjoin:
+            return
         ticketchan = await self.bot.get_ticketchan(member.guild.id)
         try:
             ticketchan = self.bot.get_channel(ticketchan)

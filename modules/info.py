@@ -16,6 +16,9 @@ class Information(commands.Cog):
     
     @commands.Cog.listener()
     async def on_member_join(self, member):
+        dmonjoin = await self.bot.get_dmonjoin(member.guild.id)
+        if not dmonjoin:
+            return
         ticketchan = await self.bot.get_ticketchan(member.guild.id)
         try:
             ticketchan = self.bot.get_channel(ticketchan)
@@ -43,6 +46,7 @@ class Information(commands.Cog):
             await self.bot.db.execute("INSERT INTO settings (serverid) VALUES ($1);", guild.id)
         except:
             pass
+        
         owner = guild.owner
         prefix = await self.bot.getPrefix(guild.id)
         
@@ -51,24 +55,21 @@ class Information(commands.Cog):
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         #embed.set_thumbnail(url = self.bot.user.avatar_url)
         embed.add_field(
-            name=f"Thank you for inviting me to {guild}!", value=f"My prefix is `{prefix}`. To start, please run `{prefix}setup`. You may view all of my current features using `{prefix}features`. You may upgrade these features by paying a one-time fee of **$5** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
+            name=f"Thank you for inviting me to {guild}!", value=f"I have created the role Ticketer Admin as well as the category TicketerCategory. Make sure you give any staff you would like to be able to use Ticketer Admin commands the new role. **DO NOT** delete either of these, doing so will require you to run `{prefix}setup`. Feel free to rename both of these. Certain commands can only be accessed by a Ticketer Admin.\n\nMy prefix is `{prefix}`. To start, please run `{prefix}setup`. You may view all of my current features using `{prefix}features`. You may upgrade these features by paying a one-time fee of **$5** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
         await owner.send(embed=embed)
         await owner.send("https://discord.gg/5kNM5Sh")
+        await asyncio.sleep(5)
+        role = await guild.create_role(name="Ticketer Admin")
+        categorychan = await guild.create_category("TicketerCategory")
+        await owner.add_roles(role, reason="Initial Ticketer Setup")
+        await self.bot.db.execute("UPDATE settings SET ticketcategory = $1, role = $2 WHERE serverid = $3;", categorychan.id, role.id, guild.id)
+        await self.bot.db.execute("UPDATE servers SET setup = True WHERE serverid = $1;", guild.id)
     
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
         await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{len(self.bot.guilds)} Guilds"))
-        ticketcategory = await self.bot.get_ticketcategory(guild.id)
-        role = await self.bot.get_adminrole(guild.id)
-        try:
-            await guild.get_role(role).delete(reason="Clearing Ticketer settings.")
-        except:
-            pass
-        try:
-            await self.bot.get_channel(ticketcategory).delete(reason="Clearing Ticketer settings.")
-        except:
-            pass
         await self.bot.db.execute("DELETE FROM settings WHERE serverid = $1;", guild.id)
+        await self.bot.db.execute("UPDATE servers SET setup = False WHERE serverid = $1;", guild.id)
 
     @commands.command()
     async def support(self, ctx):

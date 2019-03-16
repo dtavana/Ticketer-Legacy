@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+ #!/usr/bin/python3
 import discord
 import asyncio
 from discord.ext import commands
@@ -9,6 +9,7 @@ import asyncpg
 #Misc. Modules
 import datetime
 import config as cfg
+import typing
 
 extensions = [
     'modules.admin',
@@ -47,6 +48,30 @@ class Ticketer(commands.Bot):
     async def get_currentticket(self, guildid):
         res = await self.db.fetchrow("SELECT currentticket FROM servers WHERE serverid = $1;", guildid)
         return res['currentticket']
+    
+    async def get_enforcesubject(self, guildid):
+        res = await self.db.fetchrow("SELECT enforcesubject FROM settings WHERE serverid = $1;", guildid)
+        return res['enforcesubject']
+    
+    async def get_dmonjoin(self, guildid):
+        res = await self.db.fetchrow("SELECT dmonjoin FROM settings WHERE serverid = $1;", guildid)
+        return res['dmonjoin']
+    
+    async def get_adminclose(self, guildid):
+        res = await self.db.fetchrow("SELECT adminclose FROM settings WHERE serverid = $1;", guildid)
+        return res['adminclose']
+    
+    async def get_sendtranscripts(self, guildid):
+        res = await self.db.fetchrow("SELECT sendtranscripts FROM settings WHERE serverid = $1;", guildid)
+        return res['sendtranscripts']
+
+    async def get_cleannew(self, guildid):
+        res = await self.db.fetchrow("SELECT cleannew FROM settings WHERE serverid = $1;", guildid)
+        return res['cleannew']
+    
+    async def get_cleanall(self, guildid):
+        res = await self.db.fetchrow("SELECT cleanall FROM settings WHERE serverid = $1;", guildid)
+        return res['cleanall']
     
     async def increment_ticket(self, guildid):
         await self.db.execute("UPDATE servers SET currentticket = currentticket + 1 WHERE serverid = $1;", guildid)
@@ -100,26 +125,80 @@ class Ticketer(commands.Bot):
         res = res['premium']
         return res
     
-    async def sendSuccess(self, target, valString):
+    async def sendSuccess(self, target, valString, origMessages: typing.Union[list, discord.Message]=None, guild=None):
         embed = discord.Embed(
             title=f"**Success** \U00002705", description=valString, colour=discord.Colour(0x32CD32))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        #embed.set_thumbnail(url = self.user.avatar_url)
-        return await target.send(embed=embed)
+        success_message = await target.send(embed=embed)
+        if origMessages is not None and guild is not None:
+            toClean = None
+            isPremium = await self.get_premium(guild.id)
+            if isPremium:
+                toClean = await self.get_cleanall(guild.id)
+                if toClean:
+                    if isinstance(origMessages, discord.Message):
+                        origMessages = [origMessages]
+                    await asyncio.sleep(10)
+                    for message in origMessages:
+                        try:
+                            await message.delete()
+                        except:
+                            pass
+                    try:
+                        await success_message.delete()
+                    except:
+                        pass
+        else:
+            return success_message
     
-    async def sendNewTicket(self, target, valString):
+    async def sendNewTicket(self, target, valString, origMessage=None, guild=None):
         embed = discord.Embed(
             description=valString, colour=discord.Colour(0x32CD32))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        #embed.set_thumbnail(url = self.user.avatar_url)
-        return await target.send(embed=embed)
+        message = await target.send(embed=embed)
+        if origMessage is not None and guild is not None:
+            toClean = None
+            isPremium = await self.get_premium(guild.id)
+            if isPremium:
+                toClean = await self.get_cleannew(guild.id)
+                if toClean:
+                    await asyncio.sleep(10)
+                    try:
+                        await origMessage.delete()
+                    except:
+                        pass
+                    try:
+                        await message.delete()
+                    except:
+                        pass
+        else:
+            return message
     
-    async def sendError(self, target, valString):
+    async def sendError(self, target, valString, origMessages: typing.Union[list, discord.Message]=None, guild=None, isNew=None):
         embed = discord.Embed(
             title=f"**Error** \U0000274c", description=valString, colour=discord.Colour(0xf44b42))
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-        #embed.set_thumbnail(url = self.user.avatar_url)
-        return await target.send(embed=embed)
+        error_message = await target.send(embed=embed)
+        if origMessages is not None and guild is not None:
+            toClean = None
+            isPremium = await self.get_premium(guild.id)
+            if isPremium:
+                toClean = await self.get_cleanall(guild.id)
+                if toClean:
+                    if isinstance(origMessages, discord.Message):
+                        origMessages = [origMessages]
+                    await asyncio.sleep(10)
+                    for message in origMessages:
+                        try:
+                            await message.delete()
+                        except:
+                            pass
+                    try:
+                        await error_message.delete()
+                    except:
+                        pass
+        else:
+            return error_message
     
     async def sendLog(self, guildid, valString, color):
         logchanid = await self.get_logchan(guildid)
@@ -136,6 +215,7 @@ class Ticketer(commands.Bot):
     
     async def newTicket(self, target, subject, welcomemessage, user):
         await target.send(user.mention)
+        await asyncio.sleep(1)
         embed = discord.Embed(
             colour=discord.Colour(0x32CD32), description=welcomemessage)
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
@@ -168,7 +248,7 @@ class Ticketer(commands.Bot):
 
         # Example create table code, you'll probably change it to suit you
         await self.db.execute("CREATE TABLE IF NOT EXISTS servers(serverid bigint PRIMARY KEY, currentticket smallint DEFAULT 1, premium boolean DEFAULT FALSE, setup boolean DEFAULT FALSE);")
-        await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', logchannel bigint DEFAULT 0, ticketchannel bigint DEFAULT 0, ticketcategory bigint DEFAULT 0, ticketprefix varchar DEFAULT 'ticket', role bigint DEFAULT 0, ticketcount smallint DEFAULT 3, welcomemessage varchar DEFAULT '');")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', logchannel bigint DEFAULT -1, ticketchannel bigint DEFAULT -1, ticketcategory bigint DEFAULT 0, ticketprefix varchar DEFAULT 'ticket', role bigint DEFAULT 0, ticketcount smallint DEFAULT 3, welcomemessage varchar DEFAULT 'Welcome to our server. Support will be with you shortly', sendtranscripts boolean DEFAULT FALSE, cleannew boolean DEFAULT FALSE, cleanall boolean DEFAULT FALSE, adminclose boolean DEFAULT FALSE, dmonjoin boolean DEFAULT FALSE, enforcesubject boolean DEFAULT FALSE);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS premium(userid bigint PRIMARY KEY, credits smallint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS tickets(userid bigint, ticketid bigint, serverid bigint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS blacklist(userid bigint, serverid bigint);")

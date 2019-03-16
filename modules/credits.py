@@ -25,14 +25,13 @@ class Credits(commands.Cog):
             sufficient = sufficient['sufficient']
         except:
             prefix = await self.bot.getPrefix(ctx.guild.id)
-            await self.bot.sendError(ctx, f"{ctx.author.mention} has no credits to redeem.\n\nUse {prefix}support for a link to our support server to pruchase premium!")
+            await self.bot.sendError(ctx, f"{ctx.author.mention} has no credits to redeem.\n\nUse {prefix}support for a link to our support server to purchase premium!", ctx.message, ctx.guild)
             return
-        
         hasPremium = await self.bot.db.fetchrow("SELECT premium FROM servers WHERE serverid = $1;", ctx.guild.id)
         hasPremium = hasPremium['premium']
         if sufficient:
             if not hasPremium:
-                await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
+                initMessage = await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
                 embed = discord.Embed(title=f"Redeem Premium \U0000270d", colour=discord.Colour(0xFFA500))
                 embed.set_footer(text=f"Ticketer | {cfg.authorname}")
                 #embed.set_thumbnail(url = self.bot.user.avatar_url)
@@ -47,18 +46,17 @@ class Credits(commands.Cog):
                 reaction, user = await self.bot.wait_for('reaction_add', check=reactioncheck, timeout=30)
                 # Check if thumbs up
                 if reaction.emoji != "\U0001f44d":
-                    await ctx.send("Command Cancelled")
-                    return
+                    return await self.bot.sendError(ctx, "Command Cancelled", [ctx.message, initQuestion, message], ctx.guild)
                 await self.bot.db.fetchrow("UPDATE premium SET credits = credits - 1 WHERE userid = $1;", ctx.author.id)
                 await self.bot.db.execute("DELETE from premium WHERE credits <= 0 AND userid = $1;", ctx.author.id)
                 await self.bot.db.execute("UPDATE servers SET premium = TRUE WHERE serverid = $1;", ctx.guild.id)
                 prefix = await self.bot.getPrefix(ctx.guild.id)
-                await self.bot.sendSuccess(ctx, f"`{ctx.guild}` now has premium enabled! Rerun `{prefix}setup` in order to utilize premium fully!\n\nThank you for using Ticketer.")
+                await self.bot.sendSuccess(ctx, f"`{ctx.guild}` now has premium enabled! Rerun `{prefix}setup` in order to utilize premium fully!\n\nThank you for using Ticketer.", [ctx.message, initQuestion, message], ctx.guild)
             else:
-                await self.bot.sendError(ctx, f"`{ctx.guild}` already has premium enabled!")
+                await self.bot.sendError(ctx, f"`{ctx.guild}` already has premium enabled!", ctx.message, ctx.guild)
         else:
             prefix = await self.bot.getPrefix(ctx.guild.id)
-            await self.bot.sendError(f"{ctx.author.mention} has no credits to redeem.\n\nUse {prefix}support for a link to our support server to pruchase premium!")
+            await self.bot.sendError(f"{ctx.author.mention} has no credits to redeem.\n\nUse {prefix}support for a link to our support server to pruchase premium!", ctx.message, ctx.guild)
     
     @commands.cooldown(1, 60, BucketType.user)
     @commands.command()
@@ -67,9 +65,9 @@ class Credits(commands.Cog):
         try:
             credit = await self.bot.db.fetchrow("SELECT credits from premium WHERE userid = $1;", ctx.author.id)
             credit = credit['credits']
-            await self.bot.sendSuccess(ctx, f"{ctx.author.mention} has {credit} credit(s).\n\n Use `{prefix}redeem` to redeem your premium credit(s).")
+            await self.bot.sendSuccess(ctx, f"{ctx.author.mention} has {credit} credit(s).\n\n Use `{prefix}redeem` to redeem your premium credit(s).", ctx.message, ctx.guild)
         except:
-            await self.bot.sendError(ctx, f"{ctx.author.mention} has no credit(s).\n\n Use `{prefix}upgrade` to learn how to upgrade.")
+            await self.bot.sendError(ctx, f"{ctx.author.mention} has no credit(s).\n\n Use `{prefix}upgrade` to learn how to upgrade.", ctx.message, ctx.guild)
     
     @commands.check(premium_admins)
     @commands.command(hidden=True)

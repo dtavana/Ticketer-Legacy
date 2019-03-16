@@ -207,7 +207,7 @@ class Ticketer(commands.Bot):
     async def sendLog(self, guildid, valString, color):
         logchanid = await self.get_logchan(guildid)
         if logchanid == -1:
-            return
+            return None
         target = self.get_channel(logchanid)
         if target is None:
             return
@@ -216,6 +216,10 @@ class Ticketer(commands.Bot):
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         #embed.set_thumbnail(url = self.user.avatar_url)
         await target.send(embed=embed)
+        return target
+    
+    async def sendTranscript(self, target, theFile):
+        await target.send(file=theFile)
     
     async def newTicket(self, target, subject, welcomemessage, user):
         await target.send(user.mention)

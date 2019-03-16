@@ -1,51 +1,38 @@
-# Base Modules for Bot
 import discord
 import asyncio
 from discord.ext import commands
 import traceback
 import sys
-
-# Misc. Modules
 import datetime
 import config as cfg
 import uuid
 import typing
 import aiohttp
+import aiofiles
+import os
 
 class Tickets(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     async def create_transcript(self, channel, guild):
-        pastecode = ""
+        lines = []
         initMessage = True
         async for message in channel.history(reverse=True):
             if initMessage:
                 initMessage = False
                 continue
             if len(message.embeds) > 0:
-                pastecode += "<EMBED>\n"
+                lines.append("**EMBED**<br /><br />")
             else:
-                pastecode += (str(message.author) + ": " + message.content + "\n")
+               lines.append(str(message.author) + ": " + message.content.replace(channel.mention, f"{channel}") + "<br /><br />")
         
-        URL = "https://pastebin.com/api/api_post.php"
+        path = f"~\\Coding\\Python\\Ticketer\\tickets\\{guild.id}_{channel}.html"
+            
         
-        payload = {
-            "api_dev_key": "e075c7d3f1892a15fd1f173d5e1f0418",
-            "api_option": "paste",
-            "api_paste_code": pastecode,
-            "api_paste_name": f"{guild}_{channel}",
-            "api_paste_private": 1,
-            "api_paste_format": "css",
-            "api_paste_expire_date": "1W"
-        }
-
-        async with aiohttp.ClientSession() as cs:
-            async with cs.post(URL, data=payload) as r:
-                data = await r.text()
-        
-        return data
-
+        async with aiofiles.open(path, mode="w+") as transcript:
+            await transcript.writelines(lines)
+        return discord.File(path, filename=f"transcript_{channel}.html"), f"{guild.id}_{channel}.html", path
     
     async def ticketeradmin(ctx):
         bot = ctx.bot
@@ -134,11 +121,13 @@ class Tickets(commands.Cog):
         welcomemessage = welcomemessage.replace(":server:", str(ctx.guild))
 
         await self.bot.db.execute("INSERT INTO tickets (userid, ticketid, serverid) VALUES ($1, $2, $3);", target.id, newticket.id, ctx.guild.id)
-        await self.bot.newTicket(newticket, subject, welcomemessage, target)
-        await self.bot.sendLog(ctx.guild.id, f"{target} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32))
-        await self.bot.sendNewTicket(ctx, f"{target.mention} your ticket has been opened, click here: {newticket.mention}", ctx.message, ctx.guild)
+        await asyncio.gather(
+            await self.bot.newTicket(newticket, subject, welcomemessage, target),
+            await self.bot.sendNewTicket(ctx, f"{target.mention} your ticket has been opened, click here: {newticket.mention}", ctx.message, ctx.guild),
+            await self.bot.sendLog(ctx.guild.id, f"{target} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32)),
+        )
         await self.bot.increment_ticket(ctx.guild.id)
-    
+        
     @commands.command()
     @commands.check(ticketeradmin)
     async def add(self, ctx, user: discord.Member, channel: discord.TextChannel):
@@ -181,14 +170,22 @@ class Tickets(commands.Cog):
                     if reaction.emoji != "\U0001f44d":
                         await ctx.send("Command Cancelled")
                         return
+                channel = ctx.channel
                 isPremium = await self.bot.get_premium(ctx.guild.id)
                 sendTranscripts = await self.bot.get_sendtranscripts(ctx.guild.id)
                 if isPremium and sendTranscripts:
-                    transcripturl = await self.create_transcript(ctx.channel, ctx.guild)
-                    await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** [Click here]({transcripturl})", discord.Colour(0xf44b42))
+                    theFile, filename, path = await self.create_transcript(ctx.channel, ctx.guild)
+                    logchan = await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** Is below)", discord.Colour(0xf44b42))
+                    if logchan is not None:
+                        await self.bot.sendTranscript(logchan, theFile)
                     ticketowner = await self.bot.get_ticketowner(ctx.channel.id)
                     ticketowner = ctx.guild.get_member(ticketowner)
-                    await self.bot.sendSuccess(ticketowner, f"[Click here]({transcripturl}) to view the transcript for {ctx.channel}")
+                    await self.bot.sendSuccess(ticketowner, f"Transcript for `{ctx.channel}` is below")
+                    await self.bot.sendTranscript(ticketowner, theFile)
+                    try:
+                        os.remove(path)
+                    except:
+                        pass
                 else:
                     await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed `{ctx.channel}`\n**Reason:** `{reason}`", discord.Colour(0xf44b42))
                 await self.bot.db.execute("DELETE FROM tickets WHERE ticketid = $1;", ctx.channel.id)

@@ -45,7 +45,7 @@ class Tickets(commands.Cog):
         role = await bot.get_adminrole(ctx.guild.id)
         role = ctx.guild.get_role(role)
         adminclose = await ctx.bot.get_adminclose(ctx.guild.id)
-        return role in ctx.author.roles or adminclose
+        return role in ctx.author.roles or not adminclose
     
     async def checkAdmin(self, ctx):
         bot = ctx.bot
@@ -109,24 +109,26 @@ class Tickets(commands.Cog):
                 role: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
             }
 
-        newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{currentticket}", category=ticketcategory, overwrites=overwrites)
-        #newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{channelToken}", category=ticketcategory, overwrites=overwrites)
         if isinstance(subject, discord.Member):
             target = subject
             subject = None
         else:
             target = ctx.author
         
+        isBlacklisted = await self.bot.get_blacklisted(target.id, ctx.guild.id)
+        if isBlacklisted:
+            return await self.bot.sendError(ctx, f"{target.mention} is currently blacklisted from creating tickets.", ctx.message, ctx.guild)
+
+        newticket = await ctx.guild.create_text_channel(f"{ticketprefix}-{currentticket}", category=ticketcategory, overwrites=overwrites)
+        
         welcomemessage = welcomemessage.replace(":user:", target.mention)
         welcomemessage = welcomemessage.replace(":server:", str(ctx.guild))
 
         await self.bot.db.execute("INSERT INTO tickets (userid, ticketid, serverid) VALUES ($1, $2, $3);", target.id, newticket.id, ctx.guild.id)
-        await asyncio.gather(
-            await self.bot.newTicket(newticket, subject, welcomemessage, target),
-            await self.bot.sendNewTicket(ctx, f"{target.mention} your ticket has been opened, click here: {newticket.mention}", ctx.message, ctx.guild),
-            await self.bot.sendLog(ctx.guild.id, f"{target} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32)),
-        )
-        await self.bot.increment_ticket(ctx.guild.id)
+        await self.bot.db.execute("UPDATE servers SET currentticket = currentticket + 1 WHERE serverid = $1;", ctx.guild.id)
+        await self.bot.newTicket(newticket, subject, welcomemessage, target)
+        await self.bot.sendNewTicket(ctx, f"{target.mention} your ticket has been opened, click here: {newticket.mention}", ctx.message, ctx.guild)
+        await self.bot.sendLog(ctx.guild.id, f"{target} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32))
         
     @commands.command()
     @commands.check(ticketeradmin)
@@ -228,7 +230,7 @@ class Tickets(commands.Cog):
     @commands.command()
     @commands.check(ticketeradmin)
     async def blacklist(self, ctx, user: discord.Member):
-        data = await self.bot.db.fetchrow("SELECT userid FROM blacklist WHERE serverid = $2 AND userid = $3;", user.id, ctx.guild.id, user.id)
+        data = await self.bot.db.fetchrow("SELECT userid FROM blacklist WHERE serverid = $1 AND userid = $2;", ctx.guild.id, user.id)
         if data is None:
             await self.bot.db.execute("INSERT INTO blacklist (userid, serverid) VALUES ($1, $2);", user.id, ctx.guild.id)
             await self.bot.sendSuccess(ctx, f"{user.mention} has been blacklisted.")
@@ -238,7 +240,7 @@ class Tickets(commands.Cog):
     @commands.command()
     @commands.check(ticketeradmin)
     async def unblacklist(self, ctx, user: discord.Member):
-        data = await self.bot.db.fetchrow("SELECT userid FROM blacklist WHERE serverid = $2 AND userid = $3;", user.id, ctx.guild.id, user.id)
+        data = await self.bot.db.fetchrow("SELECT userid FROM blacklist WHERE serverid = $1 AND userid = $2;", ctx.guild.id, user.id)
         if data is not None:
             await self.bot.db.execute("DELETE FROM blacklist WHERE userid = $1 AND serverid = $2;", user.id, ctx.guild.id)
             await self.bot.sendSuccess(ctx, f"{user.mention} has been removed from the blacklist.")

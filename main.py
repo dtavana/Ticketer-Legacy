@@ -92,6 +92,10 @@ class Ticketer(commands.Bot):
         except:
             return None
     
+    async def get_blacklisted(self, targetid, guildid):
+        res = await self.db.fetchrow("SELECT userid FROM blacklist WHERE userid = $1 AND serverid = $2;", targetid, guildid)
+        return res is not None
+    
     async def get_adminrole(self, guildid):
         res = await self.db.fetchrow("SELECT role FROM settings WHERE serverid = $1;", guildid)
         try:

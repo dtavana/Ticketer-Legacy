@@ -16,23 +16,25 @@ class Tickets(commands.Cog):
         self.bot = bot
 
     async def create_transcript(self, channel, guild):
-        lines = []
-        initMessage = True
-        async for message in channel.history(reverse=True):
-            if initMessage:
-                initMessage = False
-                continue
-            if len(message.embeds) > 0:
-                lines.append("**EMBED**<br /><br />")
-            else:
-               lines.append(str(message.author) + ": " + message.content.replace(channel.mention, f"{channel}") + "<br /><br />")
-        
-        path = f"~\\Coding\\Python\\Ticketer\\tickets\\{guild.id}_{channel}.html"
+        try:
+            lines = []
+            initMessage = True
+            async for message in channel.history(reverse=True):
+                if initMessage:
+                    initMessage = False
+                    continue
+                if len(message.embeds) > 0:
+                    lines.append("**EMBED**<br /><br />")
+                else:
+                    lines.append(str(message.author) + ": " + message.content.replace(channel.mention, f"{channel}") + "<br /><br />")
             
-        
-        async with aiofiles.open(path, mode="w+") as transcript:
-            await transcript.writelines(lines)
-        return discord.File(path, filename=f"transcript_{channel}.html"), f"{guild.id}_{channel}.html", path
+            path = f"home/dtavana/Coding/Python/Ticketer/tickets/{guild.id}_{channel}.html"
+            async with aiofiles.open(path, mode="w+") as transcript:
+                await transcript.writelines(lines)
+            return discord.File(path, filename=f"transcript_{channel}.html"), f"{guild.id}_{channel}.html", path
+        except Exception as e:
+            await channel.send(e)
+            return None, None, None
     
     async def ticketeradmin(ctx):
         bot = ctx.bot
@@ -177,11 +179,14 @@ class Tickets(commands.Cog):
                 sendTranscripts = await self.bot.get_sendtranscripts(ctx.guild.id)
                 if isPremium and sendTranscripts:
                     theFile, filename, path = await self.create_transcript(ctx.channel, ctx.guild)
-                    logchan = await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** Is below)", discord.Colour(0xf44b42))
-                    if logchan is not None:
-                        await self.bot.sendTranscript(logchan, theFile)
                     ticketowner = await self.bot.get_ticketowner(ctx.channel.id)
                     ticketowner = ctx.guild.get_member(ticketowner)
+                    if theFile is None and filename is None and path is None:
+                        await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** Could not be generated", discord.Colour(0xf44b42))
+                        return await self.bot.sendError(ticketowner, f"Transcript for `{ctx.channel}` could not be generated")
+                    logchan = await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** Is below", discord.Colour(0xf44b42))
+                    if logchan is not None:
+                        await self.bot.sendTranscript(logchan, theFile)
                     await self.bot.sendSuccess(ticketowner, f"Transcript for `{ctx.channel}` is below")
                     await self.bot.sendTranscript(ticketowner, theFile)
                     try:

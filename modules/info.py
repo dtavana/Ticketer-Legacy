@@ -55,9 +55,12 @@ class Information(commands.Cog):
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         #embed.set_thumbnail(url = self.bot.user.avatar_url)
         embed.add_field(
-            name=f"Thank you for inviting me to {guild}!", value=f"I have created the role Ticketer Admin as well as the category TicketerCategory. Make sure you give any staff you would like to be able to use Ticketer Admin commands the new role. **DO NOT** delete either of these, doing so will require you to run `{prefix}initializesetup`. Feel free to rename both of these. Certain commands can only be accessed by a Ticketer Admin.\n\nMy prefix is `{prefix}`. To start, please run `{prefix}initializesetup`. You may view all of my current features using `{prefix}features`. You may upgrade these features by paying a one-time fee of **$5** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
-        await owner.send(embed=embed)
-        await owner.send("https://discord.gg/5kNM5Sh")
+            name=f"Thank you for inviting me to {guild}!", value=f"I have created the role Ticketer Admin as well as the category TicketerCategory. Make sure you give any staff you would like to be able to use Ticketer Admin commands the new role. **DO NOT** delete either of these, doing so will require you to run `{prefix}initializesetup`. Feel free to rename both of these. Certain commands can only be accessed by a Ticketer Admin.\n\nMy prefix is `{prefix}`.  You may view all of my current features using `{prefix}features`. You may upgrade these features by paying a one-time fee of **$5** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
+        try:
+            await owner.send(embed=embed)
+            await owner.send("https://discord.gg/5kNM5Sh")
+        except:
+            pass
         await asyncio.sleep(5)
         role = await guild.create_role(name="Ticketer Admin")
         categorychan = await guild.create_category("TicketerCategory")

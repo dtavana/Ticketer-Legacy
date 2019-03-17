@@ -19,6 +19,30 @@ class Credits(commands.Cog):
         return ctx.author.id in admins
     
     @commands.command()
+    @commands.guild_only()
+    async def withdraw(self, ctx):
+        prefix = await self.bot.getPrefix(ctx.guild.id)
+        hasPremium = await self.bot.db.fetchrow("SELECT premium FROM servers WHERE serverid = $1;", ctx.guild.id)
+        hasPremium = hasPremium['premium']
+        if hasPremium:
+            premium_owner = await self.bot.get_premiumowner(ctx.guild.id)
+            if premium_owner != 0:
+                premium_owner = ctx.guild.get_member(premium_owner)
+            else:
+                premium_owner = ctx.author
+            if ctx.author != premium_owner:
+                return await self.bot.sendError(ctx, f"Only the user that redeemed premium for this server may run this command.", ctx.message, ctx.guild)
+            await self.bot.db.execute("UPDATE servers SET premium = False WHERE serverid = $1;", ctx.guild.id)
+            try:
+                await self.bot.db.execute("INSERT INTO premium (userid, credits) VALUES ($1, 0);", ctx.author.id) 
+            except:
+                await self.bot.db.execute("UPDATE premium SET credits = credits + 1 WHERE userid = $1;", ctx.author.id)
+            await self.bot.sendSuccess(ctx, f"{ctx.author.mention} has gained a credit and this server has lost premium.", ctx.message, ctx.guild)
+        else:
+            await self.bot.sendError(ctx, f"This server currently does not have premium enabled. Please use the `{prefix}upgrade` command to get more information about premium.", ctx.message, ctx.guild)
+
+    @commands.command()
+    @commands.guild_only()
     async def redeem(self, ctx):
         try:
             sufficient = await self.bot.db.fetchrow("SELECT credits >= 1 AS sufficient FROM premium WHERE userid = $1;", ctx.author.id)
@@ -49,7 +73,7 @@ class Credits(commands.Cog):
                     return await self.bot.sendError(ctx, "Command Cancelled", [ctx.message, initQuestion, message], ctx.guild)
                 await self.bot.db.fetchrow("UPDATE premium SET credits = credits - 1 WHERE userid = $1;", ctx.author.id)
                 await self.bot.db.execute("DELETE from premium WHERE credits <= 0 AND userid = $1;", ctx.author.id)
-                await self.bot.db.execute("UPDATE servers SET premium = TRUE WHERE serverid = $1;", ctx.guild.id)
+                await self.bot.db.execute("UPDATE servers SET premium = TRUE, userid = $1 WHERE serverid = $2;", ctx.author.id, ctx.guild.id)
                 prefix = await self.bot.getPrefix(ctx.guild.id)
                 await self.bot.sendSuccess(ctx, f"`{ctx.guild}` now has premium enabled! Take a look at `{prefix}help` under the settings category in order to utilize premium fully!\n\nThank you for using Ticketer.", [ctx.message, initQuestion, message], ctx.guild)
             else:

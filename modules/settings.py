@@ -17,7 +17,7 @@ class Settings(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
-    async def initalizesetup(self, ctx):
+    async def initializesetup(self, ctx):
         category = await self.bot.get_ticketcategory(ctx.guild.id)
         role = await self.bot.get_adminrole(ctx.guild.id)
 

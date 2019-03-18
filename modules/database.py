@@ -48,14 +48,16 @@ class Database(commands.Cog):
         if (readOrWrite == "Read"):
             try:
                 result = await self.bot.db.fetch(query)
-                result = result[0]
-                for key, value in result.items():
+                for record in result:
+                    embedstr = ""
+                    for key, value in record.items():
+                        embedstr += f"`{key}`|`{value}`\n"
+                    
                     embed = discord.Embed(
                         title=f"Success \U00002705", colour=discord.Colour(0x32CD32))
                     embed.set_footer(text=f"Ticketer | {cfg.authorname}")
-                    #embed.set_thumbnail(url = self.bot.user.avatar_url)
                     embed.add_field(name="Key|Value:",
-                                    value=f"`{key}`|`{value}`")
+                                    value=embedstr, inline=False)
                     await ctx.send(embed=embed)
             except:
                 await self.bot.sendError(ctx, f"Your query returned `None` or was an invalid query.")

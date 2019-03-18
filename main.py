@@ -137,6 +137,10 @@ class Ticketer(commands.Bot):
         res = res['premium']
         return res
     
+    async def get_specificchannels(self, guildid):
+        res = await self.db.fetch("SELECT * FROM specificchannels WHERE serverid = $1;", guildid)
+        return res
+    
     async def sendSuccess(self, target, valString, origMessages: typing.Union[list, discord.Message]=None, guild=None):
         embed = discord.Embed(
             title=f"**Success** \U00002705", description=valString, colour=discord.Colour(0x32CD32))
@@ -265,6 +269,7 @@ class Ticketer(commands.Bot):
         # Example create table code, you'll probably change it to suit you
         await self.db.execute("CREATE TABLE IF NOT EXISTS servers(serverid bigint PRIMARY KEY, currentticket smallint DEFAULT 1, premium boolean DEFAULT FALSE, setup boolean DEFAULT FALSE, userid bigint DEFAULT 0);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', logchannel bigint DEFAULT -1, ticketchannel bigint DEFAULT -1, ticketcategory bigint DEFAULT 0, ticketprefix varchar DEFAULT 'ticket', role bigint DEFAULT 0, ticketcount smallint DEFAULT 3, welcomemessage varchar DEFAULT 'Welcome to our server. Support will be with you shortly', sendtranscripts boolean DEFAULT FALSE, cleannew boolean DEFAULT FALSE, cleanall boolean DEFAULT FALSE, adminclose boolean DEFAULT FALSE, dmonjoin boolean DEFAULT FALSE, enforcesubject boolean DEFAULT FALSE);")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS specificchannels(serverid bigint, roleid bigint, channelid bigint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS premium(userid bigint PRIMARY KEY, credits smallint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS tickets(userid bigint, ticketid bigint, serverid bigint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS blacklist(userid bigint, serverid bigint);")

@@ -74,8 +74,9 @@ class Tickets(commands.Cog):
             prefix = await self.bot.getPrefix(ctx.guild.id)
             await self.bot.sendError(ctx, f"The server admins have not ran the `{prefix}setup` command yet!", ctx.message, ctx.guild)
             return
-        ticketchan = await self.bot.get_ticketchan(ctx.guild.id)
-        ticketchan = self.bot.get_channel(ticketchan)
+        ticketchanint = await self.bot.get_ticketchan(ctx.guild.id)
+        ticketchan = self.bot.get_channel(ticketchanint)
+        specificchannels = await self.bot.get_specificchannels(ctx.guild.id)
         if ticketchan is not None and ctx.channel is not ticketchan and isPremium:
             await self.bot.sendError(ctx, f"Please run this command in {ticketchan.mention}", ctx.message, ctx.guild)
             return
@@ -92,20 +93,44 @@ class Tickets(commands.Cog):
         role = await self.bot.get_adminrole(ctx.guild.id)
         role = ctx.guild.get_role(role)
 
+        channel_role = 123
+        if specificchannels:
+            for specificchannel in specificchannels:
+                if specificchannel['channelid'] == ctx.channel.id:
+                    channel_role = specificchannel['roleid']
+                    break
+        if specificchannels and channel_role == 123:
+            return await self.bot.sendError(ctx, f"{ctx.channel.mention} is not a ticket channel.", ctx.message, ctx.guild)
+
 
         if isinstance(subject, discord.Member):
-            overwrites = {
-                ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
-                ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
-                role: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
-                subject: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
-            }
+            if not specificchannels:
+                overwrites = {
+                    ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
+                    ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+                    role: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+                    subject: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
+                }
+            else:
+                overwrites = {
+                    ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
+                    ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+                    ctx.guild.get_role(channel_role): discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+                    subject: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
+                }
         else:
-            overwrites = {
-                ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
-                ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
-                role: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
-            }
+            if not specificchannels:
+                overwrites = {
+                    ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
+                    ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+                    role: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+                }
+            else:
+                overwrites = {
+                    ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
+                    ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+                    ctx.guild.get_role(channel_role): discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+                }
 
         if isinstance(subject, discord.Member):
             target = subject

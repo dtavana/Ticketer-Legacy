@@ -39,8 +39,56 @@ class Settings(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
+    async def setspecificchannels(self, ctx):
+        """Sets specifc ticket creation channels to be bound to specific roles. **NOTE:** requires `setticketchannel` to be set to `-1`"""
+        def validchannelcheck(message):
+            try:
+                messagestr = message.content[2:-1]
+                channel = self.bot.get_channel(int(messagestr))
+                return message.author == ctx.author and channel is not None
+            except:
+                return False
+        
+        def validrolecheck(message):
+            try:
+                if message.content == "-1":
+                    return True
+                messagestr = message.content[3:-1]
+                role = message.guild.get_role(int(messagestr))
+                return message.author == ctx.author and role is not None
+            except:
+                return False
+        
+        isPremium = await self.bot.get_premium(ctx.guild.id)
+        ticketchan = None
+        await asyncio.sleep(1)
+        if(isPremium):
+            ticketchan = await self.bot.get_ticketchan(ctx.guild.id)
+            if ticketchan != -1:
+                prefix = await self.bot.getPrefix(ctx.guild.id)
+                return await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not {prefix}setticketchannel equal to `-1`. Please do so before proceeding", ctx.message, ctx.guild)
+            try:
+                role_message = await ctx.send("Please tag the role you would like to set as the designated role to view the ticket channel you are creating. **NOTE:** Admins still need to have the Ticketer Admin role to manage tickets.")
+                role = await self.bot.wait_for('message', check=validrolecheck, timeout=120)
+                roleint = int(role.content[3:-1])
+                channel_message = await ctx.send("Please tag the channel you would like to set as the channel to create tickets. **NOTE:** Enter **-1** to not restrict the channel.")
+                ticketchan = await self.bot.wait_for('message', check=validchannelcheck, timeout=120)
+                ticketchanint = int(ticketchan.content[2:-1])
+                await self.bot.db.execute("INSERT INTO specificchannels (serverid, channelid, roleid) VALUES ($1, $2, $3);", ctx.guild.id, ticketchanint, roleint)
+                await self.bot.sendSuccess(ctx, f"{ticketchan.content} is now bound to {role.content}", [ctx.message, role_message, channel_message], ctx.guild)
+            except asyncio.TimeoutError:
+                return await self.bot.sendError(ctx, f'Your current operation timed out. Please re-run the command', [ctx.message, role_message, channel_message, ticketchan], ctx.guild)
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+        
+
+    
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    @commands.guild_only()
     async def setticketchannel(self, ctx):
-        """Sets the channel to restrict creation of tickets to. **NOTE:** use -1 to allow creation of tickets in any channel"""
+        """Sets the channel to restrict creation of tickets to. **NOTE:** use `-1` to allow creation of tickets in any channel OR to define channels that are bound to specific roles such that only those roles can see the created tickets"""
         def validchannelcheck(message):
             try:
                 if message.content == "-1":
@@ -393,8 +441,35 @@ class Settings(commands.Cog):
             "DELETE FROM settings WHERE serverid = $1;", ctx.guild.id)
         await self.bot.db.execute(
             "INSERT INTO settings (serverid) VALUES ($1);", ctx.guild.id)
-        await self.bot.sendSuccess(ctx, f"The settings were cleared.", [ctx.channel, initQuestion, message], ctx.channel)
+        await self.bot.sendSuccess(ctx, f"The settings were cleared.", [ctx.message, initQuestion, message], ctx.guild)
         await self.bot.db.execute("UPDATE servers SET setup = False WHERE serverid = $1;", ctx.guild.id)
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    @commands.guild_only()
+    async def clearspecificchannels(self, ctx):
+        """Clears all specific channel settings from the server."""
+        initQuestion = await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
+        embed = discord.Embed(
+            title=f"Settings Info \U0000270d", colour=discord.Colour(0xFFA500))
+        embed.set_footer(text=f"Ticketer | {embed.timestamp}")
+        #embed.set_thumbnail(url = self.bot.user.avatar_url)
+        embed.set_author(name=cfg.authorname)
+        embed.add_field(name="Type:", value=f"`CLEAR SPECIFIC CHANNELS`")
+        message = await ctx.send(embed=embed)
+        await message.add_reaction("\U0001f44d")
+        await message.add_reaction("\U0001f44e")
+
+        def reactioncheck(reaction, user):
+            validreactions = ["\U0001f44d", "\U0001f44e"]
+            return user.id == ctx.author.id and reaction.emoji in validreactions
+        reaction, user = await self.bot.wait_for('reaction_add', check=reactioncheck, timeout=30)
+        # Check if thumbs up
+        if reaction.emoji != "\U0001f44d":
+            return await self.bot.sendError(ctx, "Command Cancelled", [ctx.message, initQuestion, message], ctx.guild)
+        await self.bot.db.execute(
+            "DELETE FROM specificchannels WHERE serverid = $1;", ctx.guild.id)
+        await self.bot.sendSuccess(ctx, f"The role bound channels were cleared.", [ctx.message, initQuestion, message], ctx.guild)
 
 def setup(bot):
     bot.add_cog(Settings(bot))

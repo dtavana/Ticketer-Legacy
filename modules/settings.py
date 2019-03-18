@@ -59,6 +59,10 @@ class Settings(commands.Cog):
             except:
                 return False
         
+        specificchannels = await self.bot.get_specificchannels(ctx.guild.id)
+        if len(specificchannels) >= 15:
+            return await self.bot.sendError(ctx, f"This server already has {len(specificchannels)} role bound channels and can not have anymore. If you would like to request more, please join our support server `support`.", ctx.message, ctx.guild)
+        
         isPremium = await self.bot.get_premium(ctx.guild.id)
         ticketchan = None
         await asyncio.sleep(1)
@@ -74,6 +78,8 @@ class Settings(commands.Cog):
                 channel_message = await ctx.send("Please tag the channel you would like to set as the channel to create tickets. **NOTE:** Enter **-1** to not restrict the channel.")
                 ticketchan = await self.bot.wait_for('message', check=validchannelcheck, timeout=120)
                 ticketchanint = int(ticketchan.content[2:-1])
+                ticketchannel = self.bot.get_channel(ticketchanint)
+                await ticketchannel.set_permissions(ctx.bot.user, read_messages=True, send_messages=True)
                 await self.bot.db.execute("INSERT INTO specificchannels (serverid, channelid, roleid) VALUES ($1, $2, $3);", ctx.guild.id, ticketchanint, roleint)
                 await self.bot.sendSuccess(ctx, f"{ticketchan.content} is now bound to {role.content}", [ctx.message, role_message, channel_message], ctx.guild)
             except asyncio.TimeoutError:
@@ -118,6 +124,9 @@ class Settings(commands.Cog):
                 await self.bot.sendSuccess(ctx, f"Create ticket channel is now unbounded", [ctx.message, message, ticketchan], ctx.guild)
             else:
                 await self.bot.sendSuccess(ctx, f"Create ticket channel is now {ticketchan.content}", [ctx.message, message, ticketchan], ctx.guild)
+            if ticketchanint != -1:
+                ticketchannel = self.bot.get_channel(ticketchanint)
+                await ticketchannel.set_permissions(ctx.bot.user, read_messages=True, send_messages=True)
         else:
             prefix = await self.bot.getPrefix(ctx.guild.id)
             await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
@@ -155,6 +164,9 @@ class Settings(commands.Cog):
                 await self.bot.sendSuccess(ctx, f"Log channel is now unbounded", [ctx.message, message, logchan], ctx.guild)
             else:
                 await self.bot.sendSuccess(ctx, f"Log channel is now {logchan.content}", [ctx.message, message, logchan], ctx.guild)
+            if logchanint != -1:
+                logchannel = self.bot.get_channel(logchanint)
+                await logchannel.set_permissions(ctx.bot.user, read_messages=True, send_messages=True)
         else:
             prefix = await self.bot.getPrefix(ctx.guild.id)
             await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)

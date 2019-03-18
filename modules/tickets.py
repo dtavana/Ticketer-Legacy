@@ -93,13 +93,12 @@ class Tickets(commands.Cog):
         role = await self.bot.get_adminrole(ctx.guild.id)
         role = ctx.guild.get_role(role)
 
-        channel_role = 123
+        channel_roles = []
         if specificchannels:
             for specificchannel in specificchannels:
                 if specificchannel['channelid'] == ctx.channel.id:
-                    channel_role = specificchannel['roleid']
-                    break
-        if specificchannels and channel_role == 123:
+                    channel_roles.append(specificchannel['roleid'])
+        if specificchannels and not channel_roles:
             return await self.bot.sendError(ctx, f"{ctx.channel.mention} is not a ticket channel.", ctx.message, ctx.guild)
 
 
@@ -116,10 +115,11 @@ class Tickets(commands.Cog):
                 overwrites = {
                     ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
                     ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
-                    ctx.guild.get_role(channel_role): discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
                     ctx.bot.user: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
                     subject: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
                 }
+                for roleid in channel_roles:
+                    overwrites[ctx.guild.get_role(roleid)] = discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
         else:
             if not specificchannels:
                 overwrites = {
@@ -132,9 +132,10 @@ class Tickets(commands.Cog):
                 overwrites = {
                     ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
                     ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
-                    ctx.guild.get_role(channel_role): discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
                     ctx.bot.user: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
                 }
+                for roleid in channel_roles:
+                    overwrites[ctx.guild.get_role(roleid)] = discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
 
         if isinstance(subject, discord.Member):
             target = subject

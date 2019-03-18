@@ -109,6 +109,7 @@ class Tickets(commands.Cog):
                     ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
                     ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
                     role: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+                    ctx.bot.user: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
                     subject: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
                 }
             else:
@@ -116,6 +117,7 @@ class Tickets(commands.Cog):
                     ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
                     ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
                     ctx.guild.get_role(channel_role): discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+                    ctx.bot.user: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
                     subject: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
                 }
         else:
@@ -124,12 +126,14 @@ class Tickets(commands.Cog):
                     ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
                     ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
                     role: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+                    ctx.bot.user: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
                 }
             else:
                 overwrites = {
                     ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
                     ctx.author: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
                     ctx.guild.get_role(channel_role): discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+                    ctx.bot.user: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
                 }
 
         if isinstance(subject, discord.Member):

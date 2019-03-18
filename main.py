@@ -260,7 +260,7 @@ class Ticketer(commands.Bot):
         print(f"Logged in as: {self.user}")
         print(f"Total Servers: {len(self.guilds)}")
         print(f"Total Cogs: {len(self.cogs)}")
-        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{len(self.guilds)} Guilds"))
+        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{len(self.guilds)} Guilds | {len([usr for usr in self.users if not usr.bot])} Users"))
 
         credentials = {"user": cfg.ticketeruser, "password": cfg.ticketerpass,
                        "database": cfg.ticketerdb, "host": cfg.ticketerhost, "port": cfg.ticketerport}

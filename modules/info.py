@@ -37,7 +37,7 @@ class Information(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
-        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{len(self.bot.guilds)} Guilds"))
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{len(self.bot.guilds)} Guilds | {len([usr for usr in self.bot.users if not usr.bot])} Users"))
         try:
             await self.bot.db.execute("INSERT INTO servers (serverid) VALUES ($1);", guild.id)
         except:
@@ -55,7 +55,7 @@ class Information(commands.Cog):
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         #embed.set_thumbnail(url = self.bot.user.avatar_url)
         embed.add_field(
-            name=f"Thank you for inviting me to {guild}!", value=f"I have created the role Ticketer Admin as well as the category TicketerCategory. Make sure you give any staff you would like to be able to use Ticketer Admin commands the new role. **DO NOT** delete either of these, doing so will require you to run `{prefix}initializesetup`. Feel free to rename both of these. Certain commands can only be accessed by a Ticketer Admin.\n\nMy prefix is `{prefix}`.  You may view all of my current features using `{prefix}features`. You may upgrade these features by paying a one-time fee of **$5** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
+            name=f"Thank you for inviting me to {guild}!", value=f"I have created the role Ticketer Admin as well as the category TicketerCategory. Make sure you give any staff you would like to be able to use Ticketer Admin commands the new role. **DO NOT** delete either of these, doing so will require you to run `{prefix}initializesetup`. Feel free to rename both of these. Certain commands can only be accessed by a Ticketer Admin.\n\nMy prefix is `{prefix}`.  You may view all of my current features using `{prefix}features`. You may upgrade these features by paying a monthly fee of **$2** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
         try:
             await owner.send(embed=embed)
             await owner.send("https://discord.gg/5kNM5Sh")
@@ -70,8 +70,9 @@ class Information(commands.Cog):
     
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
-        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{len(self.bot.guilds)} Guilds"))
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{len(self.bot.guilds)} Guilds | {len([usr for usr in self.bot.users if not usr.bot])} Users"))
         await self.bot.db.execute("DELETE FROM settings WHERE serverid = $1;", guild.id)
+        await self.bot.db.execute("DELETE FROM specificchannels WHERE serverid = $1;", guild.id)
         await self.bot.db.execute("UPDATE servers SET setup = False WHERE serverid = $1;", guild.id)
 
     @commands.command()
@@ -83,13 +84,13 @@ class Information(commands.Cog):
     @commands.command()
     async def upgrade(self, ctx):
         """Information about upgrading to premium"""
-        await ctx.send("For only **$10**, you can upgrade to have so many more features and support Ticketer at the same time! Please join the offical support server for more information.")
+        await ctx.send("For only **$2 a month**, you can upgrade to have so many more features and support Ticketer at the same time! Please join the offical support server for more information.")
         await ctx.send("https://discord.gg/5kNM5Sh")
     
     @commands.command()
     async def inviteme(self, ctx):
         """Displays an invite to invite me"""
-        await self.bot.sendSuccess(ctx, f"To invite me, [click here](https://discordapp.com/oauth2/authorize?client_id=542709669211275296&scope=bot&permissions=8)")
+        await self.bot.sendSuccess(ctx, f"To invite me, [click here](https://discordapp.com/oauth2/authorize?client_id=542709669211275296&scope=bot&permissions=805825745)")
     
     @commands.command()
     @commands.cooldown(1, 3.0, type=commands.BucketType.member)

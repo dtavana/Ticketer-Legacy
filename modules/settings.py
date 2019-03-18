@@ -18,6 +18,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def initializesetup(self, ctx):
+        """Creates the Ticketer Admin role as well as the Ticketer Category. **Run this command if you have deleted either the role or category created on guild join**"""
         category = await self.bot.get_ticketcategory(ctx.guild.id)
         role = await self.bot.get_adminrole(ctx.guild.id)
 
@@ -39,6 +40,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def setticketchannel(self, ctx):
+        """Sets the channel to restrict creation of tickets to. **NOTE:** use -1 to allow creation of tickets in any channel"""
         def validchannelcheck(message):
             try:
                 if message.content == "-1":
@@ -76,6 +78,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def setlogchannel(self, ctx):
+        """Sets the channel to restrict creation of tickets to. **NOTE:** use -1 to disable logs. **NOTE:** transcripts require one to set a log channel"""
         def validchannelcheck(message):
             try:
                 if message.content == "-1":
@@ -112,6 +115,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def setticketprefix(self, ctx):
+        """Sets the prefix before a ticket. Example: `ticket-123` where `ticket` is the ticket prefix"""
         isPremium = await self.bot.get_premium(ctx.guild.id)
         ticketprefix = None
         await asyncio.sleep(1)
@@ -132,6 +136,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def setwelcomemessage(self, ctx):
+        """Sets the welcome message that is displayed at the creation of a ticket in the ticket. **NOTE:** `:user:` and `:server:` can be used in the welcome message to be replaced with a mention of the user that created the ticket and the sevrer name"""
         isPremium = await self.bot.get_premium(ctx.guild.id)
         welcomemessage = None
         await asyncio.sleep(1)
@@ -152,6 +157,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def setmaxtickets(self, ctx):
+        """Sets the max amount of tickets a user may have. **NOTE:** use -1 to undrestrict a max amount of tickets"""
         def amountcheck(message):
             try:
                 intval = int(message.content)
@@ -183,6 +189,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def setprefix(self, ctx):
+        """Sets the command prefix for all commands. By default, this is set to `-`"""
         isPremium = await self.bot.get_premium(ctx.guild.id)
         prefix = None
         await asyncio.sleep(1)
@@ -203,6 +210,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def setdmonjoin(self, ctx):
+        """Sets a DM on join for users that explains how Ticketer works"""
         isPremium = await self.bot.get_premium(ctx.guild.id)
         dmonjoin = None
         await asyncio.sleep(1)
@@ -227,6 +235,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def setcleannew(self, ctx):
+        """Sets the option to clean `new` invocations. In short, this will delete the command invocation as well as the embed displaying that a new ticket has been created"""
         isPremium = await self.bot.get_premium(ctx.guild.id)
         cleannew = None
         await asyncio.sleep(1)
@@ -251,6 +260,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def setcleanall(self, ctx):
+        """Sets the option to clean all invocations other than `new` invocations. In short, this will delete the command invocation as well as any embeds displayed afterwards"""
         isPremium = await self.bot.get_premium(ctx.guild.id)
         cleanall = None
         await asyncio.sleep(1)
@@ -275,6 +285,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def setenforcesubject(self, ctx):
+        """Sets the need for a user to provide a subject when creating a ticket. **NOTE:** this does not apply to when a Ticketer Admin uses `new @USER`"""
         isPremium = await self.bot.get_premium(ctx.guild.id)
         enforcesubject = None
         await asyncio.sleep(1)
@@ -299,6 +310,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def settranscripts(self, ctx):
+        """Sets the sending of transcripts to a log channel as well as the user that created the ticket on closing of the ticket. **NOTE:** requires `setlogchannel` to be set to `True`"""
         isPremium = await self.bot.get_premium(ctx.guild.id)
         transcripts = None
         await asyncio.sleep(1)
@@ -323,6 +335,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def setadminclose(self, ctx):
+        """Sets the ability for non admins to close tickets. **NOTE:** `True` disallows non admins from closing tickets"""
         isPremium = await self.bot.get_premium(ctx.guild.id)
         adminclose = None
         await asyncio.sleep(1)
@@ -347,6 +360,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def clearsettings(self, ctx):
+        """Clears all settings from the server. **NOTE:** run `initializesetup` after this command to ensure that the bot functions correctly"""
         initQuestion = await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
         embed = discord.Embed(
             title=f"Settings Info \U0000270d", colour=discord.Colour(0xFFA500))

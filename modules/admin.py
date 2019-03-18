@@ -66,15 +66,6 @@ class Administration(commands.Cog):
 
     @commands.command(hidden=True)
     @commands.is_owner()
-    async def gitpull(self, ctx):
-        """Pulls Git Repo"""
-        repo = git.Repo("C:\\Users\\TwiSt\\Desktop\\Files\\PGSupportBot")
-        remotes = repo.remotes.origin
-        remotes.pull()
-        await ctx.send("Success")
-
-    @commands.command(hidden=True)
-    @commands.is_owner()
     async def eval(self, ctx, *, body: str):
         """Evaluates a code"""
 

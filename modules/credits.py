@@ -21,6 +21,7 @@ class Credits(commands.Cog):
     @commands.command()
     @commands.guild_only()
     async def withdraw(self, ctx):
+        """Withdraws premium for a server and gives the user their credit back. **NOTE:** can only be run by the user that redeemed premium"""
         prefix = await self.bot.getPrefix(ctx.guild.id)
         hasPremium = await self.bot.db.fetchrow("SELECT premium FROM servers WHERE serverid = $1;", ctx.guild.id)
         hasPremium = hasPremium['premium']
@@ -44,6 +45,7 @@ class Credits(commands.Cog):
     @commands.command()
     @commands.guild_only()
     async def redeem(self, ctx):
+        """Redeem a premium credit to the current server. Use the `upgrade` command for more info on getting premium"""
         try:
             sufficient = await self.bot.db.fetchrow("SELECT credits >= 1 AS sufficient FROM premium WHERE userid = $1;", ctx.author.id)
             sufficient = sufficient['sufficient']
@@ -85,6 +87,7 @@ class Credits(commands.Cog):
     @commands.cooldown(1, 60, BucketType.user)
     @commands.command()
     async def credits(self, ctx):
+        """Displays the current amount of credits one has"""
         prefix = await self.bot.getPrefix(ctx.guild.id)
         try:
             credit = await self.bot.db.fetchrow("SELECT credits from premium WHERE userid = $1;", ctx.author.id)

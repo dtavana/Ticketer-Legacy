@@ -14,9 +14,10 @@ class Database(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
+    @commands.command(hidden=True)
     @commands.is_owner()
     async def query(self, ctx, query: str, readOrWrite: str):
+        
         if (readOrWrite not in ["r", "w", "read", "write", "Read", "Write"]):
             await ctx.send(f"{ctx.author.mention} entered an invalid Read/Write value or {readOrWrite}")
             return

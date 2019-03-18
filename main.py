@@ -241,7 +241,7 @@ class Ticketer(commands.Bot):
         await target.send(embed=embed)
 
     def run(self):
-        # self.remove_command("help")
+        self.remove_command("help")
         for ext in extensions:
             try:
                 self.load_extension(ext)

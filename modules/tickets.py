@@ -57,6 +57,7 @@ class Tickets(commands.Cog):
     
     @commands.command()
     async def new(self, ctx, *, subject: typing.Union[discord.Member, str, None] = None):
+        """Creates a new ticket. **NOTE:** Ticketer Admins may use this command in the format `new @USER` to create a ticket for said user"""
         enforce_subject = await self.bot.get_enforcesubject(ctx.guild.id)
         prefix = await self.bot.getPrefix(ctx.guild.id)
         if enforce_subject and subject is None:
@@ -86,11 +87,6 @@ class Tickets(commands.Cog):
         ticketcategoryint = await self.bot.get_ticketcategory(ctx.guild.id)
         ticketcategory = self.bot.get_channel(ticketcategoryint)
         currentticket = await self.bot.get_currentticket(ctx.guild.id)
-        '''
-        channelToken = str(uuid.uuid4())
-        channelToken = channelToken[:channelToken.find('-')]
-        channelToken = channelToken[::2]
-        '''
         ticketprefix = await self.bot.get_ticketprefix(ctx.guild.id)
         welcomemessage = await self.bot.get_welcomemessage(ctx.guild.id)
         role = await self.bot.get_adminrole(ctx.guild.id)
@@ -135,6 +131,7 @@ class Tickets(commands.Cog):
     @commands.command()
     @commands.check(ticketeradmin)
     async def add(self, ctx, user: discord.Member, channel: discord.TextChannel):
+        """Adds a user to a ticket. **NOTE:** Can only be run by Ticketer Admins"""
         data = await self.bot.db.fetchrow("SELECT ticketid FROM tickets WHERE ticketid = $1;", channel.id)
         if data is not None:
             await channel.set_permissions(user, read_messages=True, send_messages=True)
@@ -146,6 +143,7 @@ class Tickets(commands.Cog):
     @commands.command()
     @commands.check(ticketeradmin)
     async def remove(self, ctx, user: discord.Member, channel: typing.Optional[discord.TextChannel]):
+        """Removes a user from a ticket. **NOTE:** Can only be run by Ticketer Admins"""
         if channel is None:
             chanel = ctx.channel
         data = await self.bot.db.fetchrow("SELECT ticketid FROM tickets WHERE ticketid = $1;", channel.id)
@@ -158,7 +156,11 @@ class Tickets(commands.Cog):
 
     @commands.command()
     async def close(self, ctx, *, reason=None):
-        close_data = await self.closeonlyadmin(ctx)
+        """Closes a ticket"""
+        try:
+            close_data = await self.closeonlyadmin(ctx)
+        except:
+            close_data = True
         if close_data:
             data = await self.bot.db.fetchrow("SELECT ticketid FROM tickets WHERE ticketid = $1;", ctx.channel.id)
             if data is not None:
@@ -182,28 +184,32 @@ class Tickets(commands.Cog):
                     ticketowner = await self.bot.get_ticketowner(ctx.channel.id)
                     ticketowner = ctx.guild.get_member(ticketowner)
                     if theFile is None and filename is None and path is None:
-                        await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** Could not be generated", discord.Colour(0xf44b42))
-                        return await self.bot.sendError(ticketowner, f"Transcript for `{ctx.channel}` could not be generated")
-                    logchan = await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** Is below", discord.Colour(0xf44b42))
+                        await self.bot.sendLog(ctx.guild.id, f"{ctx.author} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** Could not be generated", discord.Colour(0xf44b42))
+                        if ticketowner is not None:
+                            await self.bot.sendError(ticketowner, f"Transcript for `{ctx.channel}` could not be generated")
+                    logchan = await self.bot.sendLog(ctx.guild.id, f"{ctx.author} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** Is below", discord.Colour(0xf44b42))
                     if logchan is not None:
                         await self.bot.sendTranscript(logchan, theFile)
-                    await self.bot.sendSuccess(ticketowner, f"Transcript for `{ctx.channel}` is below")
-                    await self.bot.sendTranscript(ticketowner, theFile)
+                    if ticketowner is not None:
+                        await self.bot.sendSuccess(ticketowner, f"Transcript for `{ctx.channel}` is below")
+                        await self.bot.sendTranscript(ticketowner, theFile)
                     try:
                         os.remove(path)
                     except:
                         pass
                 else:
-                    await self.bot.sendLog(ctx.guild.id, f"{ctx.author.mention} closed `{ctx.channel}`\n**Reason:** `{reason}`", discord.Colour(0xf44b42))
+                    await self.bot.sendLog(ctx.guild.id, f"{ctx.author} closed `{ctx.channel}`\n**Reason:** `{reason}`", discord.Colour(0xf44b42))
                 await self.bot.db.execute("DELETE FROM tickets WHERE ticketid = $1;", ctx.channel.id)
                 await ctx.channel.delete(reason="Closing ticket.")
             else:
                 await self.bot.sendError(ctx, f"You must run this command in a ticket channel.", ctx.message, ctx.guild)
         else:
             await self.bot.sendError(ctx, "The server admins have disallowed non admins to close tickets.", ctx.message, ctx.guild)
+            
     @commands.command()
     @commands.check(ticketeradmin)
     async def closeall(self, ctx):
+        """Closes all tickets"""
         initQuestion = await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
         embed = discord.Embed(
             title=f"Ticketer Management \U0000270d", colour=discord.Colour(0xFFA500))
@@ -235,6 +241,7 @@ class Tickets(commands.Cog):
     @commands.command()
     @commands.check(ticketeradmin)
     async def blacklist(self, ctx, user: discord.Member):
+        """Blacklists a user from creating new tickets"""
         data = await self.bot.db.fetchrow("SELECT userid FROM blacklist WHERE serverid = $1 AND userid = $2;", ctx.guild.id, user.id)
         if data is None:
             await self.bot.db.execute("INSERT INTO blacklist (userid, serverid) VALUES ($1, $2);", user.id, ctx.guild.id)
@@ -245,6 +252,7 @@ class Tickets(commands.Cog):
     @commands.command()
     @commands.check(ticketeradmin)
     async def unblacklist(self, ctx, user: discord.Member):
+        """Removed a user from the blacklist"""
         data = await self.bot.db.fetchrow("SELECT userid FROM blacklist WHERE serverid = $1 AND userid = $2;", ctx.guild.id, user.id)
         if data is not None:
             await self.bot.db.execute("DELETE FROM blacklist WHERE userid = $1 AND serverid = $2;", user.id, ctx.guild.id)

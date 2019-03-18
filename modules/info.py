@@ -1,10 +1,10 @@
 import discord
 import asyncio
 from discord.ext import commands
+from discord.ext.commands.cooldowns import BucketType
+from .utils.paginator import HelpPaginator, CannotPaginate
 import traceback
 import sys
-
-#Misc. Modules
 import datetime
 import config as cfg
 import psutil
@@ -75,18 +75,42 @@ class Information(commands.Cog):
         await self.bot.db.execute("UPDATE servers SET setup = False WHERE serverid = $1;", guild.id)
 
     @commands.command()
-    async def support(self, ctx):
+    async def supportserver(self, ctx):
+        """Displays an invite to the support server"""
         await ctx.send("Please join the official Ticketer support server for more detailed support.")
         await ctx.send("https://discord.gg/5kNM5Sh")
     
     @commands.command()
     async def upgrade(self, ctx):
-        await ctx.send("For only **$5**, you can upgrade to have so many more features and support Ticketer at the same time! Please join the offical support server for more information.")
+        """Information about upgrading to premium"""
+        await ctx.send("For only **$10**, you can upgrade to have so many more features and support Ticketer at the same time! Please join the offical support server for more information.")
         await ctx.send("https://discord.gg/5kNM5Sh")
     
     @commands.command()
     async def inviteme(self, ctx):
+        """Displays an invite to invite me"""
         await self.bot.sendSuccess(ctx, f"To invite me, [click here](https://discordapp.com/oauth2/authorize?client_id=542709669211275296&scope=bot&permissions=8)")
+    
+    @commands.command()
+    @commands.cooldown(1, 3.0, type=commands.BucketType.member)
+    async def help(self, ctx, *, command: str = None):
+        """Displays help for all commands"""
+        try:
+            if command is None:
+                p = await HelpPaginator.from_bot(ctx)
+            else:
+                entity = self.bot.get_cog(command) or self.bot.get_command(command)
+                if entity is None:
+                    clean = command.replace('@', '@\u200b')
+                    return await self.bot.sendError(ctx, f'Command or category `{clean}` not found.', ctx.message, ctx.guild)
+                elif isinstance(entity, commands.Command):
+                    p = await HelpPaginator.from_command(ctx, entity)
+                else:
+                    p = await HelpPaginator.from_cog(ctx, entity)
+
+            await p.paginate()
+        except Exception as e:
+            await ctx.send(e)
     
     @commands.command(aliases=['statistics'])
     @commands.is_owner()
@@ -120,6 +144,17 @@ class Information(commands.Cog):
         e.add_field(name="PC Stats", value=f"**Memory:** {int(p.memory_info()[0]/1024/1024)}mb ({memory_percent}%)\n"
                     f"**CPU:** {psutil.cpu_percent()}%", inline=False)
         await ctx.send(embed=e)
+    
+    @help.error
+    async def info_handler(self, ctx, error):
+        import traceback
+        traceback.print_exception(type(error), error, error.__traceback__)
+        if isinstance(error, commands.CommandOnCooldown):
+            seconds = error.retry_after
+            seconds = round(seconds, 2)
+            hours, remainder = divmod(int(seconds), 3600)
+            minutes, seconds = divmod(remainder, 60)
+            await self.bot.sendError(ctx, f"You are on cooldown! Please try again in **{seconds} seconds**", ctx.message, ctx.guild)
 
 def setup(bot):
     bot.add_cog(Information(bot))

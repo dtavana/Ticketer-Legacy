@@ -55,7 +55,7 @@ class Information(commands.Cog):
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         #embed.set_thumbnail(url = self.bot.user.avatar_url)
         embed.add_field(
-            name=f"Thank you for inviting me to {guild}!", value=f"I have created the role Ticketer Admin as well as the category TicketerCategory. Make sure you give any staff you would like to be able to use Ticketer Admin commands the new role. **DO NOT** delete either of these, doing so will require you to run `{prefix}initializesetup`. Feel free to rename both of these. Certain commands can only be accessed by a Ticketer Admin.\n\nMy prefix is `{prefix}`.  You may view all of my current features using `{prefix}features`. You may upgrade these features by paying a monthly fee of **$2** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
+            name=f"Thank you for inviting me to {guild}!", value=f"I have created the role Ticketer Admin as well as the category TicketerCategory. Make sure you give any staff you would like to be able to use Ticketer Admin commands the new role. **DO NOT** delete either of these, doing so will require you to run `{prefix}initializesetup`. Use the `{prefix}help` command to view all of my features. Feel free to rename both of these. Certain commands can only be accessed by a Ticketer Admin.\n\nMy prefix is `{prefix}`. You may upgrade these features by paying a monthly fee of **$2** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
         try:
             await owner.send(embed=embed)
             await owner.send("https://discord.gg/5kNM5Sh")
@@ -79,6 +79,19 @@ class Information(commands.Cog):
     async def supportserver(self, ctx):
         """Displays an invite to the support server"""
         await ctx.send("Please join the official Ticketer support server for more detailed support.")
+        await ctx.send("https://discord.gg/5kNM5Sh")
+    
+    @commands.command()
+    async def info(self, ctx):
+        """Displays general info about the bot"""
+        prefix = await self.bot.getPrefix(ctx.guild.id)
+        embed = discord.Embed(
+            title=f"Ticketer", colour=discord.Colour(0x32CD32))
+        embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+        #embed.set_thumbnail(url = self.bot.user.avatar_url)
+        embed.add_field(
+            name=f"Thank you for using Ticketer!", value=f"On guild join, the role Ticketer Admin as well as the category TicketerCategory are created. Make sure you give any staff you would like to be able to use Ticketer Admin commands the new role. **DO NOT** delete either of these, doing so will require you to run `{prefix}initializesetup`. Feel free to rename both of these. My help command is `{prefix}help`. Use this to view all of my commands. Certain commands can only be accessed by a Ticketer Admin.\n\nMy prefix is `{prefix}`. You may upgrade these features by paying a monthly fee of **$2** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
+        await ctx.send(embed=embed)
         await ctx.send("https://discord.gg/5kNM5Sh")
     
     @commands.command()

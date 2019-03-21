@@ -55,25 +55,32 @@ class Information(commands.Cog):
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         #embed.set_thumbnail(url = self.bot.user.avatar_url)
         embed.add_field(
-            name=f"Thank you for inviting me to {guild}!", value=f"I have created the role Ticketer Admin as well as the category TicketerCategory. Make sure you give any staff you would like to be able to use Ticketer Admin commands the new role. **DO NOT** delete either of these, doing so will require you to run `{prefix}initializesetup`. Use the `{prefix}help` command to view all of my features. Feel free to rename both of these. Certain commands can only be accessed by a Ticketer Admin.\n\nMy prefix is `{prefix}`. You may upgrade these features by paying a monthly fee of **$2** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
+            name=f"Thank you for inviting me to {guild}!", value=f"To get started, please run the `{prefix}initializesetup` command.\n\nMy prefix is `{prefix}`. You may upgrade these features by paying a monthly fee of **$2** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
         try:
             await owner.send(embed=embed)
             await owner.send("https://discord.gg/5kNM5Sh")
         except:
             pass
+        '''
         await asyncio.sleep(5)
-        role = await guild.create_role(name="Ticketer Admin")
-        categorychan = await guild.create_category("TicketerCategory")
-        await owner.add_roles(role, reason="Initial Ticketer Setup")
-        await self.bot.db.execute("UPDATE settings SET ticketcategory = $1, role = $2 WHERE serverid = $3;", categorychan.id, role.id, guild.id)
-        await self.bot.db.execute("UPDATE servers SET setup = True WHERE serverid = $1;", guild.id)
+        try:
+            role = await guild.create_role(name="Ticketer Admin")
+            categorychan = await guild.create_category("TicketerCategory")
+            await self.bot.db.execute("UPDATE settings SET ticketcategory = $1, role = $2 WHERE serverid = $3;", categorychan.id, role.id, guild.id)
+            await owner.add_roles(role, reason="Initial Ticketer Setup")
+            await self.bot.db.execute("UPDATE servers SET setup = True WHERE serverid = $1;", guild.id)
+        except:
+            pass
+        '''
     
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
         await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{len(self.bot.guilds)} Guilds | {len([usr for usr in self.bot.users if not usr.bot])} Users"))
         await self.bot.db.execute("DELETE FROM settings WHERE serverid = $1;", guild.id)
+        await self.bot.db.execute("DELETE FROM blacklist WHERE serverid = $1;", guild.id)
+        await self.bot.db.execute("DELETE FROM tickets WHERE serverid = $1;", guild.id)
         await self.bot.db.execute("DELETE FROM specificchannels WHERE serverid = $1;", guild.id)
-        await self.bot.db.execute("UPDATE servers SET setup = False WHERE serverid = $1;", guild.id)
+        await self.bot.db.execute("UPDATE servers SET setup = False, currentticket = 1 WHERE serverid = $1;", guild.id)
 
     @commands.command()
     async def supportserver(self, ctx):
@@ -90,7 +97,7 @@ class Information(commands.Cog):
         embed.set_footer(text=f"Ticketer | {cfg.authorname}")
         #embed.set_thumbnail(url = self.bot.user.avatar_url)
         embed.add_field(
-            name=f"Thank you for using Ticketer!", value=f"On guild join, the role Ticketer Admin as well as the category TicketerCategory are created. Make sure you give any staff you would like to be able to use Ticketer Admin commands the new role. **DO NOT** delete either of these, doing so will require you to run `{prefix}initializesetup`. Feel free to rename both of these. My help command is `{prefix}help`. Use this to view all of my commands. Certain commands can only be accessed by a Ticketer Admin.\n\nMy prefix is `{prefix}`. You may upgrade these features by paying a monthly fee of **$2** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
+            name=f"Thank you for using Ticketer!", value=f"To get started, run the `{prefix}initializesetup` command. This will create a role called Ticketer Admin as well as the category TicketerCategory. Make sure you give any staff you would like to be able to use Ticketer Admin commands the new role. **DO NOT** delete either of these, doing so will require you to run `{prefix}initializesetup`. Feel free to rename both of these. My help command is `{prefix}help`. Use this to view all of my commands. Certain commands can only be accessed by a Ticketer Admin.\n\nMy prefix is `{prefix}`. You may upgrade these features by paying a monthly fee of **$2** which helps run Ticketer (`{prefix}upgrade`). For more information or any help, please join the official Discord Support Server. Thank you for using Ticketer.\n\n")
         await ctx.send(embed=embed)
         await ctx.send("https://discord.gg/5kNM5Sh")
     

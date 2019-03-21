@@ -31,6 +31,7 @@ class Tickets(commands.Cog):
             path = f"home/dtavana/Coding/Python/Ticketer/tickets/{guild.id}_{channel}.html"
             async with aiofiles.open(path, mode="w+") as transcript:
                 await transcript.writelines(lines)
+                
             return discord.File(path, filename=f"transcript_{channel}.html"), f"{guild.id}_{channel}.html", path
         except Exception as e:
             await channel.send(e)
@@ -72,7 +73,7 @@ class Tickets(commands.Cog):
         isPremium = await self.bot.get_premium(ctx.guild.id)
         if not isSetup:
             prefix = await self.bot.getPrefix(ctx.guild.id)
-            await self.bot.sendError(ctx, f"The server admins have not ran the `{prefix}setup` command yet!", ctx.message, ctx.guild)
+            await self.bot.sendError(ctx, f"The server admins have not ran the `{prefix}initializesetup` command yet!", ctx.message, ctx.guild)
             return
         ticketchanint = await self.bot.get_ticketchan(ctx.guild.id)
         ticketchan = self.bot.get_channel(ticketchanint)

@@ -30,10 +30,20 @@ class Settings(commands.Cog):
             await ctx.guild.get_role(role).delete(reason="Running setup")
         except:
             pass
-        role = await ctx.guild.create_role(name="Ticketer Admin")
-        categorychan = await ctx.guild.create_category("TicketerCategory")
-        await ctx.author.add_roles(role)
+        try:
+            role = await ctx.guild.create_role(name="Ticketer Admin")
+        except:
+            return await self.bot.sendError(ctx, "I could not create a new role. Please make sure I have permissions to do so.", ctx.message, ctx.guild)
+        try:
+            categorychan = await ctx.guild.create_category("TicketerCategory")
+        except:
+            return await self.bot.sendError(ctx, "I could not create a new category. Please make sure I have permissions to do so.", ctx.message, ctx.guild)
+        try:
+            await ctx.author.add_roles(role)
+        except:
+            await self.bot.sendError(ctx, "I could not add the Ticketer Admin role to you. Please add this to yourself to gain full access to the commands of the bot.")
         await self.bot.db.execute("UPDATE settings SET ticketcategory = $1, role = $2 WHERE serverid = $3;", categorychan.id, role.id, ctx.guild.id)
+        await self.bot.db.execute("UPDATE servers SET Setup = True WHERE serverid = $1;", ctx.guild.id)
         await self.bot.sendSuccess(ctx, f"I have created the role Ticketer Admin as well as the category TicketerCategory. Make sure you give any staff you would like to be able to use Ticketer Admin commands the new role. **DO NOT** delete either of these, doing so will require you to run this command again. Feel free to rename both of these.", ctx.message, ctx.guild)
     
     @commands.command()

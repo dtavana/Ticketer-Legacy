@@ -13,6 +13,24 @@ import psutil
 class Information(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.bg_task = bot.loop.create_task(self.premiumLoop())
+    
+    async def premiumLoop(self):
+        await self.bot.wait_until_ready()
+        await asyncio.sleep(10)
+        while not self.bot.is_closed():
+            peopletomessage = await self.bot.db.fetch("SELECT * FROM premiumqueue")
+            for person in peopletomessage:
+                guildid = person['guildid']
+                userid = person['userid']
+                added = person['added']
+                user = self.bot.get_user(userid)
+                if added:
+                    await self.bot.sendSuccess(user, f"You have had one premium credit added to your account! Use the `redeem` command to get started!")
+                else:
+                    await self.bot.sendSuccess(user, f"You have had one premium credit removed from your account! This is due to a chargeback, refund, or a subscription ending. If you would like to get premium again, use the `upgrade` command.")
+                await self.bot.db.execute("DELETE FROM premiumqueue WHERE userid = $1", userid)
+            await asyncio.sleep(30)
     
     @commands.Cog.listener()
     async def on_member_join(self, member):
@@ -104,14 +122,13 @@ class Information(commands.Cog):
     @commands.command()
     async def upgrade(self, ctx):
         """Information about upgrading to premium"""
-        await ctx.send("For only **$2 a month**, you can upgrade to have so many more features and support Ticketer at the same time! Please join the offical support server for more information.")
-        await ctx.send("https://discord.gg/5kNM5Sh")
+        await self.bot.sendSuccess(ctx, f"[Click here to purchase premium](https://donatebot.io/checkout/542717934104084511)", ctx.message, ctx.guild)
     
     @commands.command()
     async def inviteme(self, ctx):
         """Displays an invite to invite me"""
         await self.bot.sendSuccess(ctx, f"To invite me, [click here](https://discordapp.com/oauth2/authorize?client_id=542709669211275296&scope=bot&permissions=805825745)")
-    
+          
     @commands.command()
     @commands.cooldown(1, 3.0, type=commands.BucketType.member)
     async def help(self, ctx, *, command: str = None):

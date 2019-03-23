@@ -273,7 +273,7 @@ class Ticketer(commands.Bot):
         await self.db.execute("CREATE TABLE IF NOT EXISTS premium(userid bigint PRIMARY KEY, credits smallint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS tickets(userid bigint, ticketid bigint, serverid bigint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS blacklist(userid bigint, serverid bigint);")
-        await self.db.execute("CREATE TABLE IF NOT EXISTS payments(userid bigint, paymentid varchar, payerid varchar, dateofpurchase date DEFAULT NOW());")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS premiumqueue(userid bigint, guildid bigint, added boolean);")
 
 if __name__ == "__main__":
     Ticketer().run()

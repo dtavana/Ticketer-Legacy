@@ -33,7 +33,12 @@ class Information(commands.Cog):
             await asyncio.sleep(30)
     
     @commands.Cog.listener()
+    async def on_member_remove(self, member):
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{len(self.bot.guilds)} Guilds | {len([usr for usr in self.bot.users if not usr.bot])} Users"))
+    
+    @commands.Cog.listener()
     async def on_member_join(self, member):
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{len(self.bot.guilds)} Guilds | {len([usr for usr in self.bot.users if not usr.bot])} Users"))
         dmonjoin = await self.bot.get_dmonjoin(member.guild.id)
         if not dmonjoin:
             return

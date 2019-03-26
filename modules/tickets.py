@@ -210,6 +210,7 @@ class Tickets(commands.Cog):
                 channel = ctx.channel
                 isPremium = await self.bot.get_premium(ctx.guild.id)
                 sendTranscripts = await self.bot.get_sendtranscripts(ctx.guild.id)
+                transcriptChan = await self.bot.get_transcriptchan(ctx.guild.id)
                 if isPremium and sendTranscripts:
                     theFile, filename, path = await self.create_transcript(ctx.channel, ctx.guild)
                     ticketowner = await self.bot.get_ticketowner(ctx.channel.id)
@@ -218,16 +219,23 @@ class Tickets(commands.Cog):
                         await self.bot.sendLog(ctx.guild.id, f"{ctx.author} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** Could not be generated", discord.Colour(0xf44b42))
                         if ticketowner is not None:
                             await self.bot.sendError(ticketowner, f"Transcript for `{ctx.channel}` could not be generated")
-                    logchan = await self.bot.sendLog(ctx.guild.id, f"{ctx.author} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** Is below", discord.Colour(0xf44b42))
-                    if logchan is not None:
-                        await self.bot.sendTranscript(logchan, theFile)
-                    if ticketowner is not None:
-                        await self.bot.sendSuccess(ticketowner, f"Transcript for `{ctx.channel}` is below")
-                        await self.bot.sendTranscript(ticketowner, theFile)
-                    try:
-                        os.remove(path)
-                    except:
-                        pass
+                    else:
+                        if transcriptChan != -1:
+                            transcriptChan = self.bot.get_channel(transcriptChan)
+                            logchan = await self.bot.sendLog(ctx.guild.id, f"{ctx.author} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** In transcript channel", discord.Colour(0xf44b42))
+                            await self.bot.sendLog(transcriptChan, f"{ctx.author} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** Is below", discord.Colour(0xf44b42))
+                            await self.bot.sendTranscript(transcriptChan, theFile)
+                        else:
+                            logchan = await self.bot.sendLog(ctx.guild.id, f"{ctx.author} closed `{ctx.channel}`\n**Reason:** `{reason}`\n**Transcript:** Is below", discord.Colour(0xf44b42))
+                            if logchan is not None:
+                                await self.bot.sendTranscript(logchan, theFile)
+                        if ticketowner is not None:
+                            await self.bot.sendSuccess(ticketowner, f"Transcript for `{ctx.channel}` is below")
+                            await self.bot.sendTranscript(ticketowner, theFile)
+                        try:
+                            os.remove(path)
+                        except:
+                            pass
                 else:
                     await self.bot.sendLog(ctx.guild.id, f"{ctx.author} closed `{ctx.channel}`\n**Reason:** `{reason}`", discord.Colour(0xf44b42))
                 await self.bot.db.execute("DELETE FROM tickets WHERE ticketid = $1;", ctx.channel.id)

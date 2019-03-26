@@ -145,7 +145,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def setlogchannel(self, ctx):
-        """Sets the channel to restrict creation of tickets to. **NOTE:** use -1 to disable logs. **NOTE:** transcripts require one to set a log channel"""
+        """Sets the channel to restrict creation of tickets to. **NOTE:** use -1 to disable logs. **NOTE:** transcripts require one to set a log channel. **NOTE:** If set to -1 and `settranscriptchannel` is something other than -1, transcripts will only be set to `settranscriptchannel`"""
         def validchannelcheck(message):
             try:
                 if message.content == "-1":
@@ -318,6 +318,45 @@ class Settings(commands.Cog):
                 dmonjoindata = False
             await self.bot.db.execute("UPDATE settings SET dmonjoin = $1 WHERE serverid = $2;", dmonjoindata, ctx.guild.id)
             await self.bot.sendSuccess(ctx, f"DM On Join is now set to `{dmonjoindata}`", [ctx.message, message, dmonjoin], ctx.guild)
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+    
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    @commands.guild_only()
+    async def settranscriptchannel(self, ctx):
+        """Sets the channel to restrict creation of tickets to. **NOTE:** use -1 to disable a transcript channel. **NOTE:** using this setting overrides `setlogchannel`"""
+        def validchannelcheck(message):
+            try:
+                if message.content == "-1":
+                    return True
+                messagestr = message.content[2:-1]
+                channel = self.bot.get_channel(int(messagestr))
+                return message.author == ctx.author and channel is not None
+            except:
+                return False
+        isPremium = await self.bot.get_premium(ctx.guild.id)
+        transcriptchan = None
+        await asyncio.sleep(1)
+        if(isPremium):
+            try:
+                message = await ctx.send("Please tag the channel you would like to set as the channel for ticket transcripts. **NOTE:** Enter **-1** to not have a transcript channel.")
+                transcriptchan = await self.bot.wait_for('message', check=validchannelcheck, timeout=120)
+                if(transcriptchan.content == "-1"):
+                    transcriptchanint = -1
+                else:
+                    transcriptchanint = int(transcriptchan.content[2:-1])
+            except asyncio.TimeoutError:
+                return await self.bot.sendError(ctx, f'Your current operation timed out. Please re-run the command', [ctx.message, message, transcriptchan], ctx.guild)
+            await self.bot.db.execute("UPDATE settings SET transcriptchannel = $1 WHERE serverid = $2;", transcriptchanint, ctx.guild.id)
+            if transcriptchanint == -1:
+                await self.bot.sendSuccess(ctx, f"Transcript channel is now unbounded", [ctx.message, message, transcriptchan], ctx.guild)
+            else:
+                await self.bot.sendSuccess(ctx, f"Transcript channel is now {transcriptchan.content}", [ctx.message, message, transcriptchan], ctx.guild)
+            if transcriptchanint != -1:
+                transcriptchannel = self.bot.get_channel(transcriptchanint)
+                await transcriptchannel.set_permissions(ctx.bot.user, read_messages=True, send_messages=True)
         else:
             prefix = await self.bot.getPrefix(ctx.guild.id)
             await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)

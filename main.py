@@ -133,6 +133,13 @@ class Ticketer(commands.Bot):
             res = False
         return res
     
+    async def get_transcriptchan(self, guildid):
+        res = await self.db.fetchrow("SELECT transcriptchannel FROM settings WHERE serverid = $1;", guildid)
+        res = res['transcriptchannel']
+        if res == 0:
+            res = False
+        return res
+    
     async def get_setup(self, guildid):
         res = await self.db.fetchrow("SELECT setup FROM servers WHERE serverid = $1;", guildid)
         res = res['setup']
@@ -227,11 +234,14 @@ class Ticketer(commands.Bot):
         else:
             return error_message
     
-    async def sendLog(self, guildid, valString, color):
-        logchanid = await self.get_logchan(guildid)
-        if logchanid == -1:
-            return None
-        target = self.get_channel(logchanid)
+    async def sendLog(self, chanorid: typing.Union[discord.TextChannel, int], valString, color):
+        if isinstance(chanorid, discord.TextChannel):
+            target = chanorid
+        else:
+            logchanid = await self.get_logchan(chanorid)
+            if logchanid == -1:
+                return None
+            target = self.get_channel(logchanid)
         if target is None:
             return
         embed = discord.Embed(
@@ -279,7 +289,7 @@ class Ticketer(commands.Bot):
 
         # Example create table code, you'll probably change it to suit you
         await self.db.execute("CREATE TABLE IF NOT EXISTS servers(serverid bigint PRIMARY KEY, currentticket smallint DEFAULT 1, premium boolean DEFAULT FALSE, setup boolean DEFAULT FALSE, userid bigint DEFAULT 0);")
-        await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', logchannel bigint DEFAULT -1, ticketchannel bigint DEFAULT -1, ticketcategory bigint DEFAULT 0, ticketprefix varchar DEFAULT 'ticket', role bigint DEFAULT 0, ticketcount smallint DEFAULT 3, welcomemessage varchar DEFAULT 'Welcome to our server. Support will be with you shortly', sendtranscripts boolean DEFAULT FALSE, cleannew boolean DEFAULT FALSE, cleanall boolean DEFAULT FALSE, adminclose boolean DEFAULT FALSE, dmonjoin boolean DEFAULT FALSE, enforcesubject boolean DEFAULT FALSE, newmemberwelcomemessage varchar DEFAULT '', ticketonjoin boolean DEFAULT FALSE);")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', logchannel bigint DEFAULT -1, transcriptchannel bigint DEFAULT -1, ticketchannel bigint DEFAULT -1, ticketcategory bigint DEFAULT 0, ticketprefix varchar DEFAULT 'ticket', role bigint DEFAULT 0, ticketcount smallint DEFAULT 3, welcomemessage varchar DEFAULT 'Welcome to our server. Support will be with you shortly', sendtranscripts boolean DEFAULT FALSE, cleannew boolean DEFAULT FALSE, cleanall boolean DEFAULT FALSE, adminclose boolean DEFAULT FALSE, dmonjoin boolean DEFAULT FALSE, enforcesubject boolean DEFAULT FALSE, newmemberwelcomemessage varchar DEFAULT '', ticketonjoin boolean DEFAULT FALSE);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS specificchannels(serverid bigint, roleid bigint, channelid bigint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS premium(userid bigint PRIMARY KEY, credits smallint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS tickets(userid bigint, ticketid bigint, serverid bigint);")

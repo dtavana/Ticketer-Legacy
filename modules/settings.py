@@ -227,7 +227,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def setnewwelcomemessage(self, ctx):
-        """Sets the welcome message that is displayed at the creation of a ticket in the ticket. **NOTE:** `:user:` and `:server:` can be used in the welcome message to be replaced with a mention of the user that created the ticket and the sevrer name"""
+        """Sets the welcome message that is displayed at the when a member joins. **NOTE:** `:user:` and `:server:` can be used in the welcome message to be replaced with a mention of the user that created the ticket and the sevrer name"""
         isPremium = await self.bot.get_premium(ctx.guild.id)
         newwelcomemessage = None
         await asyncio.sleep(1)
@@ -326,7 +326,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def setticketonjoin(self, ctx):
-        """Sets a DM on join for users that explains how Ticketer works"""
+        """Sets a ticket to be created when a member joins a guild"""
         isPremium = await self.bot.get_premium(ctx.guild.id)
         ticketonjoin = None
         await asyncio.sleep(1)

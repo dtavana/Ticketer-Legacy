@@ -222,6 +222,27 @@ class Settings(commands.Cog):
         else:
             prefix = await self.bot.getPrefix(ctx.guild.id)
             await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+    
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    @commands.guild_only()
+    async def setnewwelcomemessage(self, ctx):
+        """Sets the welcome message that is displayed at the creation of a ticket in the ticket. **NOTE:** `:user:` and `:server:` can be used in the welcome message to be replaced with a mention of the user that created the ticket and the sevrer name"""
+        isPremium = await self.bot.get_premium(ctx.guild.id)
+        newwelcomemessage = None
+        await asyncio.sleep(1)
+        if(isPremium):
+            try:
+                message = await ctx.send("Please enter what you would like the welcome message to be for new tickets. **NOTE**: Must be 2000 characters or less! You may use `:user:` to mention the user in your message or `:server:` to insert your server name.")
+                newwelcomemessage = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author and len(i.content) <= 2000, timeout=120)
+            except asyncio.TimeoutError:
+                return await self.bot.sendError(ctx, f'Your current operation timed out. Please re-run the command', [ctx.message, message, newwelcomemessage], ctx.guild)
+
+            await self.bot.db.execute("UPDATE settings SET newmemberwelcomemessage = $1 WHERE serverid = $2;", newwelcomemessage.content, ctx.guild.id)
+            await self.bot.sendSuccess(ctx, f"Welcome Message is now set to:\n\n{newwelcomemessage.content}", [ctx.message, message, newwelcomemessage], ctx.guild)
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
             
     @commands.command()
     @commands.has_permissions(administrator=True)
@@ -297,6 +318,31 @@ class Settings(commands.Cog):
                 dmonjoindata = False
             await self.bot.db.execute("UPDATE settings SET dmonjoin = $1 WHERE serverid = $2;", dmonjoindata, ctx.guild.id)
             await self.bot.sendSuccess(ctx, f"DM On Join is now set to `{dmonjoindata}`", [ctx.message, message, dmonjoin], ctx.guild)
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+    
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    @commands.guild_only()
+    async def setticketonjoin(self, ctx):
+        """Sets a DM on join for users that explains how Ticketer works"""
+        isPremium = await self.bot.get_premium(ctx.guild.id)
+        ticketonjoin = None
+        await asyncio.sleep(1)
+        if(isPremium):
+            try:
+                message = await ctx.send("Please enter **1** to turn this feature on or **2** to turn this feature off!")
+                ticketonjoin = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author and i.content == '1' or i.content == '2', timeout=120)
+            except asyncio.TimeoutError:
+                return await self.bot.sendError(ctx, f'Your current operation timed out. Please re-run the command', [ctx.message, message, ticketonjoin], ctx.guild)
+
+            if ticketonjoin.content == '1':
+                ticketonjoindata = True
+            else:
+                ticketonjoindata = False
+            await self.bot.db.execute("UPDATE settings SET ticketonjoin = $1 WHERE serverid = $2;", ticketonjoindata, ctx.guild.id)
+            await self.bot.sendSuccess(ctx, f"Ticket On Join is now set to `{ticketonjoindata}`", [ctx.message, message, ticketonjoin], ctx.guild)
         else:
             prefix = await self.bot.getPrefix(ctx.guild.id)
             await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)

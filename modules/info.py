@@ -13,7 +13,34 @@ import psutil
 class Information(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.bg_task = bot.loop.create_task(self.premiumLoop())
+        self.premiumtask = bot.loop.create_task(self.premiumLoop())
+        self.votestask = bot.loop.create_task(self.votesLoop())
+    
+    async def create_ticket_on_join(self, member, guild):
+        isBlacklisted = await self.bot.get_blacklisted(member.id, guild.id)
+        if isBlacklisted:
+            return
+        ticketcategoryint = await self.bot.get_ticketcategory(guild.id)
+        ticketcategory = self.bot.get_channel(ticketcategoryint)
+        currentticket = await self.bot.get_currentticket(guild.id)
+        ticketprefix = await self.bot.get_ticketprefix(guild.id)
+        welcomemessage = await self.bot.get_newmemberwelcomemessage(guild.id)
+        role = await self.bot.get_adminrole(guild.id)
+        role = guild.get_role(role)
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
+            member: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
+            self.bot.user: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
+        }
+
+        newticket = await guild.create_text_channel(f"{member.display_name}-welcometicket", category=ticketcategory, overwrites=overwrites)
+        
+        subject = "New member joined the guild"
+        
+        welcomemessage = welcomemessage.replace(":user:", member.mention)
+        welcomemessage = welcomemessage.replace(":server:", str(guild))
+        await self.bot.newTicket(newticket, subject, welcomemessage, member)
+        await self.bot.sendLog(guild.id, f"{member} had a ticket opened for them when they joined the server: {newticket.mention}", discord.Colour(0x32CD32))
     
     async def premiumLoop(self):
         await self.bot.wait_until_ready()
@@ -32,6 +59,25 @@ class Information(commands.Cog):
                 await self.bot.db.execute("DELETE FROM premiumqueue WHERE userid = $1", userid)
             await asyncio.sleep(30)
     
+    async def votesLoop(self):
+        await self.bot.wait_until_ready()
+        await asyncio.sleep(10)
+        while not self.bot.is_closed():
+            peopletomessage = await self.bot.db.fetch("SELECT * FROM votesqueue")
+            for person in peopletomessage:
+                cur_votes = person['cur_votes']
+                userid = person['userid']
+                receiveCredit = person['receivecredit']
+                user = self.bot.get_user(userid)
+                if receiveCredit:
+                    await self.bot.sendSuccess(user, f"You have had one premium credit added to your account! Use the `redeem` command to get started! Thank you for voting for Ticketer!")
+                else:
+                    await self.bot.sendSuccess(user, f"Thank you for voting for Ticketer! You currently have {cur_votes} votes on your account Continue voting to receive 1 Premium Credit.")
+                await self.bot.db.execute("DELETE FROM votesqueue WHERE userid = $1", userid)
+            await asyncio.sleep(30)
+    
+    
+    
     @commands.Cog.listener()
     async def on_member_remove(self, member):
         await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{len(self.bot.guilds)} Guilds | {len([usr for usr in self.bot.users if not usr.bot])} Users"))
@@ -40,6 +86,11 @@ class Information(commands.Cog):
     async def on_member_join(self, member):
         await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{len(self.bot.guilds)} Guilds | {len([usr for usr in self.bot.users if not usr.bot])} Users"))
         dmonjoin = await self.bot.get_dmonjoin(member.guild.id)
+        isSetup = await self.bot.get_setup(member.guild.id)
+        isPremium = await self.bot.get_premium(member.guild.id)
+        isTicketOnJoin = await self.bot.get_ticketonjoin(member.guild.id)
+        if isSetup and isPremium and isTicketOnJoin:
+            await self.create_ticket_on_join(member, member.guild)
         if not dmonjoin:
             return
         ticketchan = await self.bot.get_ticketchan(member.guild.id)

@@ -227,7 +227,7 @@ class Settings(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
     async def setnewwelcomemessage(self, ctx):
-        """Sets the welcome message that is displayed at the when a member joins. **NOTE:** `:user:` and `:server:` can be used in the welcome message to be replaced with a mention of the user that created the ticket and the sevrer name"""
+        """Sets the welcome message that is displayed in a ticket when a member joins. **NOTE:** `:user:` and `:server:` can be used in the welcome message to be replaced with a mention of the user that created the ticket and the sevrer name"""
         isPremium = await self.bot.get_premium(ctx.guild.id)
         newwelcomemessage = None
         await asyncio.sleep(1)

@@ -26,9 +26,9 @@ class Tickets(commands.Cog):
                     initMessage = False
                     continue
                 if len(message.embeds) > 0:
-                    lines.append(f"<div class='container'> {message.author.display_name} <img src ='{message.author.avatar_url}' alt='Missing Avatar'> <p>**EMBED**</p> <span class='time-right'>{message.created_at.now().strftime('%Y-%m-%d %H:%M:%S')}</span></div>")
+                    lines.append(f"<div class='container'> {message.author.display_name} <img src ='{message.author.avatar_url}' alt='Missing Avatar'> <p>**EMBED**</p> <span class='time-right'>{message.created_at.now().strftime('%Y-%m-%d %H:%M:%S')} UTC</span></div>")
                 else:
-                    lines.append(f"<div class='container'> {message.author.display_name} <img src ='{message.author.avatar_url}' alt='Missing Avatar'> <p>{message.clean_content}</p> <span class='time-right'>{message.created_at.now().strftime('%Y-%m-%d %H:%M:%S')}</span></div>")
+                    lines.append(f"<div class='container'> {message.author.display_name} <img src ='{message.author.avatar_url}' alt='Missing Avatar'> <p>{message.clean_content}</p> <span class='time-right'>{message.created_at.now().strftime('%Y-%m-%d %H:%M:%S')} UTC</span></div>")
             
             lines.append("</body")
             lines.append("/html")

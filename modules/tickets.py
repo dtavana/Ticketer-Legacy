@@ -237,8 +237,11 @@ class Tickets(commands.Cog):
                             if logchan is not None:
                                 await self.bot.sendTranscript(logchan, theFile)
                         if ticketowner is not None:
-                            await self.bot.sendSuccess(ticketowner, f"Transcript for `{ctx.channel}` is below")
-                            await self.bot.sendTranscript(ticketowner, theFile)
+                            try:
+                                await self.bot.sendSuccess(ticketowner, f"Transcript for `{ctx.channel}` is below")
+                                await self.bot.sendTranscript(ticketowner, theFile)
+                            except:
+                                pass
                         try:
                             os.remove(path)
                         except:

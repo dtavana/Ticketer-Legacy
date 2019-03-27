@@ -18,19 +18,26 @@ class Tickets(commands.Cog):
     async def create_transcript(self, channel, guild):
         try:
             lines = []
+            header = "<!DOCTYPE html>\n<html>\n<title>Ticketer Transcript</title>\n<head>\n<style type='text/css'>\nbody { background-color: #36393F; }\n.container { color: white; border: 2px solid #B03B3F; background-color: #2F3136; border-radius: 5px; padding: 20px; margin: 10px 0; }\n.edited { background-color: #f49b42; }\n.deleted { background-color: #8c2424; }\n.darker { border-color: #ccc; background-color: #ddd; }\n.container::after { content: ""; clear: both; display: table; }\n.container img { float: left; max-width: 60px; width: 100%; margin-right: 20px; border-radius: 50%; }\n.container img.right { float: right; margin-left: 20px; margin-right: 0; }\n.time-right { color: white !important; float: right; color: #aaa; }\n.time-left { color: white !important; float: left; color: #999; }\n</style>\n</head>\n<body>".split("\n")
+            lines += header
             initMessage = True
             async for message in channel.history(reverse=True):
                 if initMessage:
                     initMessage = False
                     continue
                 if len(message.embeds) > 0:
-                    lines.append("**EMBED**<br /><br />")
+                    lines.append(f"<div class='container'> {message.author.display_name} <img src ='{message.author.avatar_url}' alt='Missing Avatar'> <p>**EMBED**</p> <span class='time-right'>{message.created_at.now().strftime('%Y-%m-%d %H:%M:%S')}</span></div>")
                 else:
-                    lines.append(str(message.author) + ": " + message.content.replace(channel.mention, f"{channel}") + "<br /><br />")
+                    lines.append(f"<div class='container'> {message.author.display_name} <img src ='{message.author.avatar_url}' alt='Missing Avatar'> <p>{message.clean_content}</p> <span class='time-right'>{message.created_at.now().strftime('%Y-%m-%d %H:%M:%S')}</span></div>")
             
-            path = f"home/dtavana/Coding/Python/Ticketer/tickets/{guild.id}_{channel}.html"
-            async with aiofiles.open(path, mode="w+") as transcript:
-                await transcript.writelines(lines)
+            lines.append("</body")
+            lines.append("/html")
+            path = f"/home/dtavana/Coding/Python/Ticketer/tickets/{guild.id}_{channel}.html"
+            try:
+                async with aiofiles.open(path, mode="w+") as transcript:
+                    await transcript.writelines(lines)
+            except Exception as e:
+                print(e)
                 
             return discord.File(path, filename=f"transcript_{channel}.html"), f"{guild.id}_{channel}.html", path
         except Exception as e:

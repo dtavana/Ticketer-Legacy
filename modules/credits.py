@@ -43,6 +43,27 @@ class Credits(commands.Cog):
             await self.bot.sendError(ctx, f"This server currently does not have premium enabled. Please use the `{prefix}upgrade` command to get more information about premium.", ctx.message, ctx.guild)
 
     @commands.command()
+    async def transfer(self, ctx, target: discord.Member, amount: int = 1):
+        """Transfer a premium credit to a friend"""
+        try:
+            sufficient = await self.bot.db.fetchrow("SELECT credits >= $1 AS sufficient FROM premium WHERE userid = $2;", amount, ctx.author.id)
+            sufficient = sufficient['sufficient']
+            if sufficient == False:
+                prefix = await self.bot.getPrefix(ctx.guild.id)
+                return await self.bot.sendError(ctx, f"{ctx.author.mention} does not have enough credits to transfer **{amount}**.\n\nUse {prefix}credits to view your current credits!", ctx.message, ctx.guild)
+        except:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            return await self.bot.sendError(ctx, f"{ctx.author.mention} has no credits to transfer.\n\nUse {prefix}upgrade to buy a premium credit or vote for us on DBL!", ctx.message, ctx.guild)
+        try:
+            await self.bot.db.execute("INSERT INTO premium (userid, credits) VALUES ($1, $2);", target.id, amount) 
+        except:
+            await self.bot.db.execute("UPDATE premium SET credits = credits + $1 WHERE userid = $2;", amount, target.id)
+        await self.bot.db.execute("UPDATE premium SET credits = credits - $1 WHERE userid = $2;", amount, ctx.author.id)
+        await self.bot.sendSuccess(ctx, f"{ctx.author.mention} has given {target.mention} **{amount} credits**.", ctx.message, ctx.guild)
+        
+
+    
+    @commands.command()
     @commands.guild_only()
     async def redeem(self, ctx):
         """Redeem a premium credit to the current server. Use the `upgrade` command for more info on getting premium"""
@@ -86,6 +107,24 @@ class Credits(commands.Cog):
     
     @commands.cooldown(1, 60, BucketType.user)
     @commands.command()
+    async def vote(self, ctx):
+        """Displays a link to vote on has on DBL"""
+        await self.bot.sendSuccess(ctx, f"[Click here to vote for me](https://discordbots.org/bot/542709669211275296/vote)", ctx.message, ctx.guild)
+        
+    @commands.cooldown(1, 60, BucketType.user)
+    @commands.command()
+    async def votes(self, ctx):
+        """Displays the current amount of votes one has on DBL"""
+        prefix = await self.bot.getPrefix(ctx.guild.id)
+        try:
+            votes = await self.bot.db.fetchrow("SELECT count from votes WHERE userid = $1;", ctx.author.id)
+            votes = votes['count']
+            await self.bot.sendSuccess(ctx, f"{ctx.author.mention} has **{votes} vote(s)** for me on DBL.\n\n Use `{prefix}vote` to vote for me to receive a premium credit.", ctx.message, ctx.guild)
+        except:
+            await self.bot.sendError(ctx, f"{ctx.author.mention} has no vote(s).\n\n Use `{prefix}vote` to vote for me on DBL.", ctx.message, ctx.guild)
+    
+    @commands.cooldown(1, 60, BucketType.user)
+    @commands.command()
     async def credits(self, ctx):
         """Displays the current amount of credits one has"""
         prefix = await self.bot.getPrefix(ctx.guild.id)
@@ -126,6 +165,7 @@ class Credits(commands.Cog):
         await self.bot.sendSuccess(ctx, f"{target.mention} has received {amount} credits and now has {newcredits} credits.", [ctx.message, initQuestion, message], ctx.guild)
     
     @credits.error
+    @votes.error
     async def credits_handler(self, ctx, error):
         import traceback
         traceback.print_exception(type(error), error, error.__traceback__)

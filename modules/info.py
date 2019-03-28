@@ -76,7 +76,7 @@ class Information(commands.Cog):
                 if receiveCredit:
                     await self.bot.sendSuccess(user, f"You have had one premium credit added to your account! Use the `redeem` command to get started! Thank you for voting for Ticketer!")
                 else:
-                    await self.bot.sendSuccess(user, f"Thank you for voting for Ticketer! You currently have **{cur_votes} votes** on your account Continue voting to receive 1 Premium Credit.")
+                    await self.bot.sendSuccess(user, f"Thank you for voting for Ticketer! You currently have **{cur_votes} votes** and need **{30 - cur_votes} votes** to receive a premium credit. Continue voting to receive 1 Premium Credit.")
                 await self.bot.db.execute("DELETE FROM votesqueue WHERE userid = $1", userid)
             await asyncio.sleep(30)
     

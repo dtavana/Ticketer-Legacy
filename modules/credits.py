@@ -35,7 +35,7 @@ class Credits(commands.Cog):
                 return await self.bot.sendError(ctx, f"Only the user that redeemed premium for this server may run this command.", ctx.message, ctx.guild)
             await self.bot.db.execute("UPDATE servers SET premium = False WHERE serverid = $1;", ctx.guild.id)
             try:
-                await self.bot.db.execute("INSERT INTO premium (userid, credits) VALUES ($1, 0);", ctx.author.id) 
+                await self.bot.db.execute("INSERT INTO premium (userid, credits) VALUES ($1, 1);", ctx.author.id) 
             except:
                 await self.bot.db.execute("UPDATE premium SET credits = credits + 1 WHERE userid = $1;", ctx.author.id)
             await self.bot.sendSuccess(ctx, f"{ctx.author.mention} has gained a credit and this server has lost premium.", ctx.message, ctx.guild)

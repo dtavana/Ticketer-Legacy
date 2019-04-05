@@ -30,8 +30,8 @@ class Tickets(commands.Cog):
                 else:
                     lines.append(f"<div class='container'> {message.author.display_name} <img src ='{message.author.avatar_url}' alt='Missing Avatar'> <p>{message.clean_content}</p> <span class='time-right'>{message.created_at.now().strftime('%Y-%m-%d %H:%M:%S')} UTC</span></div>")
             
-            lines.append("</body")
-            lines.append("/html")
+            lines.append("</body>")
+            lines.append("</html>")
             path = f"/home/dtavana/Coding/Python/Ticketer/tickets/{guild.id}_{channel}.html"
             try:
                 async with aiofiles.open(path, mode="w+") as transcript:
@@ -77,6 +77,7 @@ class Tickets(commands.Cog):
                 message = await self.bot.sendError(ctx, f"{ctx.author.mention}, only Ticketer Admins can open tickets for others, use `{prefix}new SUBJECT`", ctx.message, ctx.guild)
                 return
         isSetup = await self.bot.get_setup(ctx.guild.id)
+        steamAuth = await self.bot.get_steamauth(ctx.guild.id)
         isPremium = await self.bot.get_premium(ctx.guild.id)
         if not isSetup:
             prefix = await self.bot.getPrefix(ctx.guild.id)
@@ -128,6 +129,8 @@ class Tickets(commands.Cog):
                 }
                 for roleid in channel_roles:
                     overwrites[ctx.guild.get_role(roleid)] = discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
+            if steamAuth:
+                overwrites[subject] = discord.PermissionOverwrite(read_messages=True)
         else:
             if not specificchannels:
                 overwrites = {
@@ -144,7 +147,8 @@ class Tickets(commands.Cog):
                 }
                 for roleid in channel_roles:
                     overwrites[ctx.guild.get_role(roleid)] = discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
-
+            if steamAuth:
+                overwrites[ctx.author] = discord.PermissionOverwrite(read_messages=True)
         if isinstance(subject, discord.Member):
             target = subject
             subject = None
@@ -162,9 +166,11 @@ class Tickets(commands.Cog):
 
         await self.bot.db.execute("INSERT INTO tickets (userid, ticketid, serverid) VALUES ($1, $2, $3);", target.id, newticket.id, ctx.guild.id)
         await self.bot.db.execute("UPDATE servers SET currentticket = currentticket + 1 WHERE serverid = $1;", ctx.guild.id)
-        await self.bot.newTicket(newticket, subject, welcomemessage, target)
-        await self.bot.sendNewTicket(ctx, f"{target.mention} your ticket has been opened, click here: {newticket.mention}", ctx.message, ctx.guild)
-        await self.bot.sendLog(ctx.guild.id, f"{target} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32))
+        await asyncio.gather(
+            self.bot.newTicket(newticket, subject, welcomemessage, target, steamAuth), 
+            self.bot.sendNewTicket(ctx, f"{target.mention} your ticket has been opened, click here: {newticket.mention}", ctx.message, ctx.guild),
+            self.bot.sendLog(ctx.guild.id, f"{target} created a new ticket: {newticket.mention}", discord.Colour(0x32CD32))
+            )
         
     @commands.command()
     @commands.check(ticketeradmin)

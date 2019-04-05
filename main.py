@@ -8,8 +8,10 @@ import asyncpg
 
 #Misc. Modules
 import datetime
+import time
 import config as cfg
 import typing
+import uuid
 
 extensions = [
     'modules.admin',
@@ -79,6 +81,10 @@ class Ticketer(commands.Bot):
     async def get_cleanall(self, guildid):
         res = await self.db.fetchrow("SELECT cleanall FROM settings WHERE serverid = $1;", guildid)
         return res['cleanall']
+    
+    async def get_steamauth(self, guildid):
+        res = await self.db.fetchrow("SELECT steamauth FROM settings WHERE serverid = $1;", guildid)
+        return res['steamauth']
     
     async def get_ticketowner(self, ticketid):
         res = await self.db.fetchrow("SELECT userid FROM tickets WHERE ticketid = $1;", ticketid)
@@ -251,10 +257,29 @@ class Ticketer(commands.Bot):
         await target.send(embed=embed)
         return target
     
+    async def sendSteamWaiting(self, target, user, key, valString):
+        embed = discord.Embed(
+            title=f"**Waiting for Steam Authentication** \U0001f5d2", description=valString, colour=discord.Colour(0xFFFF00))
+        embed.set_footer(text=f"Ticketer | {cfg.authorname}")
+        await target.send(embed=embed)
+        time_end = time.time() + 300
+        while time.time() < time_end:
+            data = await self.db.fetchrow("SELECT isdone, steamid from steamauthqueue WHERE key = $1;", key)
+            if data is None:
+                continue
+            isDone = data['isdone']
+            if isDone:
+                return True, data['steamid']
+            await asyncio.sleep(1)
+        return False, 0
+
+        
+        return target
+    
     async def sendTranscript(self, target, theFile):
         await target.send(file=theFile)
     
-    async def newTicket(self, target, subject, welcomemessage, user):
+    async def newTicket(self, target, subject, welcomemessage, user, steamauth = False):
         await target.send(user.mention)
         await asyncio.sleep(1)
         embed = discord.Embed(
@@ -264,6 +289,22 @@ class Ticketer(commands.Bot):
         embed.add_field(
             name="Subject:", value=f"`{subject}`")
         await target.send(embed=embed)
+
+        await asyncio.sleep(1)
+
+        if steamauth:
+            key = str(uuid.uuid4())
+            key = key.replace('-', '')
+            await self.db.execute("INSERT INTO validkeys(key) VALUES ($1);", key)
+            await self.db.execute("INSERT INTO steamauthqueue(userid, key) VALUES ($1, $2);", user.id, key)
+            doneWaiting, steamid = await self.sendSteamWaiting(target, user, key, f"You must [authenticate with steam](http://ticketerbot.xyz:5000/api/steamlogin?key={key}) before requesting support.\n\nYou have 5 minutes to do so before this ticket is deleted.")
+            if doneWaiting:
+                await target.set_permissions(user, read_messages=True, send_messages=True, attach_files=True, embed_links=True)
+                await self.sendSuccess(target, f"{user.mention} has authenticated as `{steamid}`.\n\nYou may now proceed with your request for support.")
+                await self.db.execute("DELETE FROM steamauthqueue WHERE steamid = $1;", steamid)
+                
+            else:
+                await target.delete()
 
     def run(self):
         self.remove_command("help")
@@ -289,13 +330,17 @@ class Ticketer(commands.Bot):
 
         # Example create table code, you'll probably change it to suit you
         await self.db.execute("CREATE TABLE IF NOT EXISTS servers(serverid bigint PRIMARY KEY, currentticket smallint DEFAULT 1, premium boolean DEFAULT FALSE, setup boolean DEFAULT FALSE, userid bigint DEFAULT 0);")
-        await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', logchannel bigint DEFAULT -1, transcriptchannel bigint DEFAULT -1, ticketchannel bigint DEFAULT -1, ticketcategory bigint DEFAULT 0, ticketprefix varchar DEFAULT 'ticket', role bigint DEFAULT 0, ticketcount smallint DEFAULT 3, welcomemessage varchar DEFAULT 'Welcome to our server. Support will be with you shortly', sendtranscripts boolean DEFAULT FALSE, cleannew boolean DEFAULT FALSE, cleanall boolean DEFAULT FALSE, adminclose boolean DEFAULT FALSE, dmonjoin boolean DEFAULT FALSE, enforcesubject boolean DEFAULT FALSE, newmemberwelcomemessage varchar DEFAULT '', ticketonjoin boolean DEFAULT FALSE);")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', logchannel bigint DEFAULT -1, transcriptchannel bigint DEFAULT -1, ticketchannel bigint DEFAULT -1, ticketcategory bigint DEFAULT 0, ticketprefix varchar DEFAULT 'ticket', role bigint DEFAULT 0, ticketcount smallint DEFAULT 3, welcomemessage varchar DEFAULT 'Welcome to our server. Support will be with you shortly', sendtranscripts boolean DEFAULT FALSE, cleannew boolean DEFAULT FALSE, cleanall boolean DEFAULT FALSE, steamauth boolean DEFAULT FALSE, adminclose boolean DEFAULT FALSE, dmonjoin boolean DEFAULT FALSE, enforcesubject boolean DEFAULT FALSE, newmemberwelcomemessage varchar DEFAULT '', ticketonjoin boolean DEFAULT FALSE);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS specificchannels(serverid bigint, roleid bigint, channelid bigint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS premium(userid bigint PRIMARY KEY, credits smallint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS tickets(userid bigint, ticketid bigint, serverid bigint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS blacklist(userid bigint, serverid bigint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS premiumqueue(userid bigint, guildid bigint, added boolean);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS votesqueue(userid bigint, cur_votes smallint, receiveCredit boolean);")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS steamauthqueue(userid bigint, steamid varchar DEFAULT '', key varchar, isDone boolean DEFAULT FALSE);")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS validkeys(key varchar PRIMARY KEY);")
+        await self.db.execute("DELETE FROM steamauthqueue;")
+        await self.db.execute("DELETE FROM validkeys;")
 
 if __name__ == "__main__":
     Ticketer().run()

@@ -15,6 +15,8 @@ class Information(commands.Cog):
         self.bot = bot
         self.premiumtask = bot.loop.create_task(self.premiumLoop())
         self.votestask = bot.loop.create_task(self.votesLoop())
+        self.PREMIUM_LOG_CHANNEL = 558771497817210881
+        self.VOTES_LOG_CHANNEL = 563201592971493386
     
     async def create_ticket_on_join(self, member, guild):
         isBlacklisted = await self.bot.get_blacklisted(member.id, guild.id)
@@ -39,6 +41,7 @@ class Information(commands.Cog):
         
         welcomemessage = welcomemessage.replace(":user:", member.mention)
         welcomemessage = welcomemessage.replace(":server:", str(guild))
+        await self.bot.db.execute("INSERT INTO tickets (userid, ticketid, serverid) VALUES ($1, $2, $3);", member.id, newticket.id, guild.id)
         await self.bot.newTicket(newticket, subject, welcomemessage, member)
         await self.bot.sendLog(guild.id, f"{member} had a ticket opened for them when they joined the server: {newticket.mention}", discord.Colour(0x32CD32))
     
@@ -52,13 +55,24 @@ class Information(commands.Cog):
                 userid = person['userid']
                 added = person['added']
                 user = self.bot.get_user(userid)
+                
+                logchan = self.bot.get_channel(self.PREMIUM_LOG_CHANNEL)
+                await self.bot.db.execute("DELETE FROM premiumqueue WHERE userid = $1", userid)
                 if user is None:
+                    if added:
+                        await self.bot.sendNewTicket(logchan, f"`{userid}` had a credit added to their account")
+                    else:
+                        await self.bot.sendNewTicket(logchan, f"`{userid}` had a credit removed from their account")
                     continue
+                else:
+                    if added:
+                        await self.bot.sendNewTicket(logchan, f"{user.mention} had a credit added to their account")
+                    else:
+                        await self.bot.sendNewTicket(logchan, f"{user.mention} had a credit removed from their account")
                 if added:
                     await self.bot.sendSuccess(user, f"You have had one premium credit added to your account! Use the `redeem` command to get started!")
                 else:
                     await self.bot.sendSuccess(user, f"You have had one premium credit removed from your account! This is due to a chargeback, refund, or a subscription ending. If you would like to get premium again, use the `upgrade` command.")
-                await self.bot.db.execute("DELETE FROM premiumqueue WHERE userid = $1", userid)
             await asyncio.sleep(30)
     
     async def votesLoop(self):
@@ -71,13 +85,23 @@ class Information(commands.Cog):
                 userid = person['userid']
                 receiveCredit = person['receivecredit']
                 user = self.bot.get_user(userid)
+                await self.bot.db.execute("DELETE FROM votesqueue WHERE userid = $1", userid)
+                logchan = self.bot.get_channel(self.VOTES_LOG_CHANNEL)
                 if user is None:
+                    if receiveCredit:
+                        await self.bot.sendNewTicket(logchan, f"`{userid}` just received a credit for voting!")
+                    else:
+                        await self.bot.sendNewTicket(logchan, f"`{userid}` just voted for Ticketer!")
                     continue
+                else:
+                    if receiveCredit:
+                        await self.bot.sendNewTicket(logchan, f"{user.mention} just received a credit for voting!")
+                    else:
+                        await self.bot.sendNewTicket(logchan, f"{user.mention} just voted for Ticketer!")
                 if receiveCredit:
                     await self.bot.sendSuccess(user, f"You have had one premium credit added to your account! Use the `redeem` command to get started! Thank you for voting for Ticketer!")
                 else:
                     await self.bot.sendSuccess(user, f"Thank you for voting for Ticketer! You currently have **{cur_votes} votes** and need **{30 - cur_votes} votes** to receive a premium credit. Continue voting to receive 1 Premium Credit.")
-                await self.bot.db.execute("DELETE FROM votesqueue WHERE userid = $1", userid)
             await asyncio.sleep(30)
     
     

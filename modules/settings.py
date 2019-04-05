@@ -300,6 +300,31 @@ class Settings(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
+    async def setsteamauth(self, ctx):
+        """Sets the requirement for user to authenticate with steam before typing in their ticket"""
+        isPremium = await self.bot.get_premium(ctx.guild.id)
+        steamauth = None
+        await asyncio.sleep(1)
+        if(isPremium):
+            try:
+                message = await ctx.send("Please enter **1** to turn this feature on or **2** to turn this feature off!")
+                steamauth = await self.bot.wait_for('message', check=lambda i: i.author == ctx.author and i.content == '1' or i.content == '2', timeout=120)
+            except asyncio.TimeoutError:
+                return await self.bot.sendError(ctx, f'Your current operation timed out. Please re-run the command', [ctx.message, message, steamauth], ctx.guild)
+
+            if steamauth.content == '1':
+                steamauthdata = True
+            else:
+                steamauthdata = False
+            await self.bot.db.execute("UPDATE settings SET steamauth = $1 WHERE serverid = $2;", steamauthdata, ctx.guild.id)
+            await self.bot.sendSuccess(ctx, f"Steam Authentication is now set to `{steamauthdata}`", [ctx.message, message, steamauth], ctx.guild)
+        else:
+            prefix = await self.bot.getPrefix(ctx.guild.id)
+            await self.bot.sendError(ctx, f"**{ctx.guild}** currently does not have premium enabled! For more info, please look at `{prefix}upgrade`", ctx.message, ctx.guild)
+    
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    @commands.guild_only()
     async def setdmonjoin(self, ctx):
         """Sets a DM on join for users that explains how Ticketer works"""
         isPremium = await self.bot.get_premium(ctx.guild.id)

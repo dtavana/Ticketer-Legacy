@@ -17,7 +17,7 @@ class Errors(commands.Cog):
     async def on_command_error(self, ctx, error):
         if hasattr(ctx.command, 'on_error'):
             return
-        ignored = (commands.CommandNotFound, commands.CheckFailure)
+        ignored = (commands.CommandNotFound, commands.CheckFailure, commands.CommandOnCooldown)
         error = getattr(error, 'original', error)
         if (isinstance(error, ignored)):
             return 

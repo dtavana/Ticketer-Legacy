@@ -31,8 +31,9 @@ class Information(commands.Cog):
         role = guild.get_role(role)
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False),
-            member: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True),
-            self.bot.user: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True)
+            member: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True, read_message_history=True),
+            self.bot.user: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True, read_message_history=True),
+            role: discord.PermissionOverwrite(send_messages=True, read_messages=True, attach_files=True, embed_links=True, read_message_history=True)
         }
 
         newticket = await guild.create_text_channel(f"{member.display_name}-welcometicket", category=ticketcategory, overwrites=overwrites)
@@ -73,7 +74,7 @@ class Information(commands.Cog):
                     await self.bot.sendSuccess(user, f"You have had one premium credit added to your account! Use the `redeem` command to get started!")
                 else:
                     await self.bot.sendSuccess(user, f"You have had one premium credit removed from your account! This is due to a chargeback, refund, or a subscription ending. If you would like to get premium again, use the `upgrade` command.")
-            await asyncio.sleep(30)
+            await asyncio.sleep(5)
     
     async def votesLoop(self):
         await self.bot.wait_until_ready()
@@ -102,7 +103,7 @@ class Information(commands.Cog):
                     await self.bot.sendSuccess(user, f"You have had one premium credit added to your account! Use the `redeem` command to get started! Thank you for voting for Ticketer!")
                 else:
                     await self.bot.sendSuccess(user, f"Thank you for voting for Ticketer! You currently have **{cur_votes} votes** and need **{30 - cur_votes} votes** to receive a premium credit. Continue voting to receive 1 Premium Credit.")
-            await asyncio.sleep(30)
+            await asyncio.sleep(5)
     
     
     

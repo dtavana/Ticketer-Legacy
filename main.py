@@ -157,9 +157,12 @@ class Ticketer(commands.Bot):
         return res
 
     async def get_premium(self, guildid):
-        res = await self.db.fetchrow("SELECT premium FROM servers WHERE serverid = $1;", guildid)
-        res = res['premium']
-        return res
+        res = await self.db.fetchrow("SELECT enabled FROM newpremium WHERE serverid = $1;", guildid)
+        try:
+            res = res['enabled']
+            return res
+        except:
+            return False
     
     async def get_specificchannels(self, guildid):
         res = await self.db.fetch("SELECT * FROM specificchannels WHERE serverid = $1;", guildid)
@@ -333,10 +336,11 @@ class Ticketer(commands.Bot):
         await self.db.execute("CREATE TABLE IF NOT EXISTS settings(serverid bigint PRIMARY KEY, prefix varchar DEFAULT '-', logchannel bigint DEFAULT -1, transcriptchannel bigint DEFAULT -1, ticketchannel bigint DEFAULT -1, ticketcategory bigint DEFAULT 0, ticketprefix varchar DEFAULT 'ticket', role bigint DEFAULT 0, ticketcount smallint DEFAULT 3, welcomemessage varchar DEFAULT 'Welcome to our server. Support will be with you shortly', sendtranscripts boolean DEFAULT FALSE, cleannew boolean DEFAULT FALSE, cleanall boolean DEFAULT FALSE, steamauth boolean DEFAULT FALSE, adminclose boolean DEFAULT FALSE, dmonjoin boolean DEFAULT FALSE, enforcesubject boolean DEFAULT FALSE, newmemberwelcomemessage varchar DEFAULT '', ticketonjoin boolean DEFAULT FALSE);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS specificchannels(serverid bigint, roleid bigint, channelid bigint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS premium(userid bigint PRIMARY KEY, credits smallint);")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS newpremium(userid bigint, serverid bigint DEFAULT 0, key varchar, enabled boolean DEFAULT FALSE, paymentid varchar DEFAULT 0);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS tickets(userid bigint, ticketid bigint, serverid bigint);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS blacklist(userid bigint, serverid bigint);")
-        await self.db.execute("CREATE TABLE IF NOT EXISTS premiumqueue(userid bigint, guildid bigint, added boolean);")
-        await self.db.execute("CREATE TABLE IF NOT EXISTS votesqueue(userid bigint, cur_votes smallint, receiveCredit boolean);")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS premiumqueue(userid bigint, guildid bigint, added boolean, key varchar);")
+        await self.db.execute("CREATE TABLE IF NOT EXISTS votesqueue(userid bigint, cur_votes smallint, receiveCredit boolean, key varchar);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS steamauthqueue(userid bigint, steamid varchar DEFAULT '', key varchar, isDone boolean DEFAULT FALSE);")
         await self.db.execute("CREATE TABLE IF NOT EXISTS validkeys(key varchar PRIMARY KEY);")
         await self.db.execute("DELETE FROM steamauthqueue;")

@@ -5,6 +5,7 @@ from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
 import traceback
 import sys
+import uuid
 
 # Misc. Modules
 import datetime
@@ -23,43 +24,32 @@ class Credits(commands.Cog):
     async def withdraw(self, ctx):
         """Withdraws premium for a server and gives the user their credit back. **NOTE:** can only be run by the user that redeemed premium"""
         prefix = await self.bot.getPrefix(ctx.guild.id)
-        hasPremium = await self.bot.db.fetchrow("SELECT premium FROM servers WHERE serverid = $1;", ctx.guild.id)
-        hasPremium = hasPremium['premium']
+        try:
+            hasPremium = await self.bot.db.fetchrow("SELECT key, enabled FROM newpremium WHERE serverid = $1 AND userid = $2;", ctx.guild.id, ctx.author.id)
+            key = hasPremium['key']
+            hasPremium = hasPremium['enabled']
+        except:
+            return await self.bot.sendError(ctx, f"This server currently does not have premium enabled. Please use the `{prefix}upgrade` command to get more information about premium.", ctx.message, ctx.guild)
         if hasPremium:
-            premium_owner = await self.bot.get_premiumowner(ctx.guild.id)
-            if premium_owner != 0:
-                premium_owner = ctx.guild.get_member(premium_owner)
-            else:
-                premium_owner = ctx.author
-            if ctx.author != premium_owner:
-                return await self.bot.sendError(ctx, f"Only the user that redeemed premium for this server may run this command.", ctx.message, ctx.guild)
-            await self.bot.db.execute("UPDATE servers SET premium = False WHERE serverid = $1;", ctx.guild.id)
-            try:
-                await self.bot.db.execute("INSERT INTO premium (userid, credits) VALUES ($1, 1);", ctx.author.id) 
-            except:
-                await self.bot.db.execute("UPDATE premium SET credits = credits + 1 WHERE userid = $1;", ctx.author.id)
-            await self.bot.sendSuccess(ctx, f"{ctx.author.mention} has gained a credit and this server has lost premium.", ctx.message, ctx.guild)
+            await self.bot.db.execute("UPDATE newpremium SET enabled = False, serverid = 0 WHERE key = $1;", key)
+            await self.bot.sendSuccess(ctx, f"Premium credit `{key}` is now available for use.", ctx.message, ctx.guild)
         else:
-            await self.bot.sendError(ctx, f"This server currently does not have premium enabled. Please use the `{prefix}upgrade` command to get more information about premium.", ctx.message, ctx.guild)
+            await self.bot.sendError(ctx, f"This server currently does not have premium enabled or this command was run by a user that did not redeem premium. Please use the `{prefix}upgrade` command to get more information about premium.", ctx.message, ctx.guild)
 
     @commands.command()
-    async def transfer(self, ctx, target: discord.Member, amount: int = 1):
+    async def transfer(self, ctx, target: discord.Member):
         """Transfer a premium credit to a friend"""
         try:
-            sufficient = await self.bot.db.fetchrow("SELECT credits >= $1 AS sufficient FROM premium WHERE userid = $2;", amount, ctx.author.id)
-            sufficient = sufficient['sufficient']
-            if sufficient == False:
+            sufficient = await self.bot.db.fetchrow("SELECT key FROM newpremium WHERE userid = $1 AND enabled = False;", ctx.author.id)
+            if sufficient is not None:
                 prefix = await self.bot.getPrefix(ctx.guild.id)
-                return await self.bot.sendError(ctx, f"{ctx.author.mention} does not have enough credits to transfer **{amount}**.\n\nUse {prefix}credits to view your current credits!", ctx.message, ctx.guild)
+                return await self.bot.sendError(ctx, f"{ctx.author.mention} does not have a credit to transfer.\n\nUse {prefix}credits to view your current credits!", ctx.message, ctx.guild)
         except:
             prefix = await self.bot.getPrefix(ctx.guild.id)
             return await self.bot.sendError(ctx, f"{ctx.author.mention} has no credits to transfer.\n\nUse {prefix}upgrade to buy a premium credit or vote for us on DBL!", ctx.message, ctx.guild)
-        try:
-            await self.bot.db.execute("INSERT INTO premium (userid, credits) VALUES ($1, $2);", target.id, amount) 
-        except:
-            await self.bot.db.execute("UPDATE premium SET credits = credits + $1 WHERE userid = $2;", amount, target.id)
-        await self.bot.db.execute("UPDATE premium SET credits = credits - $1 WHERE userid = $2;", amount, ctx.author.id)
-        await self.bot.sendSuccess(ctx, f"{ctx.author.mention} has given {target.mention} **{amount} credits**.", ctx.message, ctx.guild)
+        
+        await self.bot.db.execute("UPDATE newpremium SET userid = $1 WHERE key = $2;", target.id, key)
+        await self.bot.sendSuccess(ctx, f"{ctx.author.mention} has given {target.mention} their credit with id: `{key}`.", ctx.message, ctx.guild)
         
 
     
@@ -67,17 +57,10 @@ class Credits(commands.Cog):
     @commands.guild_only()
     async def redeem(self, ctx):
         """Redeem a premium credit to the current server. Use the `upgrade` command for more info on getting premium"""
-        try:
-            sufficient = await self.bot.db.fetchrow("SELECT credits >= 1 AS sufficient FROM premium WHERE userid = $1;", ctx.author.id)
-            sufficient = sufficient['sufficient']
-        except:
-            prefix = await self.bot.getPrefix(ctx.guild.id)
-            await self.bot.sendError(ctx, f"{ctx.author.mention} has no credits to redeem.\n\nUse {prefix}support for a link to our support server to purchase premium!", ctx.message, ctx.guild)
-            return
-        hasPremium = await self.bot.db.fetchrow("SELECT premium FROM servers WHERE serverid = $1;", ctx.guild.id)
-        hasPremium = hasPremium['premium']
-        if sufficient:
-            if not hasPremium:
+        sufficient = await self.bot.db.fetchrow("SELECT key FROM newpremium WHERE userid = $1 AND enabled = False;", ctx.author.id)
+        hasPremium = await self.bot.db.fetchrow("SELECT key FROM newpremium WHERE serverid = $1;", ctx.guild.id)
+        if sufficient is not None:
+            if hasPremium is None:
                 initQuestion = await ctx.send("Are you sure you would like to perform the following? If yes, react with a Thumbs Up. Otherwise, reacting with a Thumbs Down")
                 embed = discord.Embed(title=f"Redeem Premium \U0000270d", colour=discord.Colour(0xFFA500))
                 embed.set_footer(text=f"Ticketer | {cfg.authorname}")
@@ -94,16 +77,14 @@ class Credits(commands.Cog):
                 # Check if thumbs up
                 if reaction.emoji != "\U0001f44d":
                     return await self.bot.sendError(ctx, "Command Cancelled", [ctx.message, initQuestion, message], ctx.guild)
-                await self.bot.db.fetchrow("UPDATE premium SET credits = credits - 1 WHERE userid = $1;", ctx.author.id)
-                await self.bot.db.execute("DELETE from premium WHERE credits <= 0 AND userid = $1;", ctx.author.id)
-                await self.bot.db.execute("UPDATE servers SET premium = TRUE, userid = $1 WHERE serverid = $2;", ctx.author.id, ctx.guild.id)
+                await self.bot.db.execute("UPDATE newpremium SET enabled = TRUE, serverid = $1;", ctx.guild.id)
                 prefix = await self.bot.getPrefix(ctx.guild.id)
                 await self.bot.sendSuccess(ctx, f"`{ctx.guild}` now has premium enabled! Take a look at `{prefix}help` under the settings category in order to utilize premium fully!\n\nThank you for using Ticketer.", [ctx.message, initQuestion, message], ctx.guild)
             else:
                 await self.bot.sendError(ctx, f"`{ctx.guild}` already has premium enabled!", ctx.message, ctx.guild)
         else:
             prefix = await self.bot.getPrefix(ctx.guild.id)
-            await self.bot.sendError(f"{ctx.author.mention} has no credits to redeem.\n\nUse {prefix}support for a link to our support server to pruchase premium!", ctx.message, ctx.guild)
+            await self.bot.sendError(ctx, f"{ctx.author.mention} has no credits to redeem.\n\nUse {prefix}support for a link to our support server to pruchase premium!", ctx.message, ctx.guild)
     
     @commands.cooldown(1, 60, BucketType.user)
     @commands.command()
@@ -129,12 +110,18 @@ class Credits(commands.Cog):
         """Displays the current amount of credits one has"""
         prefix = await self.bot.getPrefix(ctx.guild.id)
         try:
-            credit = await self.bot.db.fetchrow("SELECT credits from premium WHERE userid = $1;", ctx.author.id)
-            credit = credit['credits']
-            await self.bot.sendSuccess(ctx, f"{ctx.author.mention} has {credit} credit(s).\n\n Use `{prefix}redeem` to redeem your premium credit(s).", ctx.message, ctx.guild)
-        except:
+            cur_credits = await self.bot.db.fetch("SELECT key, enabled, serverid from newpremium WHERE userid = $1;", ctx.author.id)
+            embedStr = ""
+            for credit in cur_credits:
+                if credit['enabled']:
+                    embedStr += f"Key: `{credit['key']}` | Enabled: `True` | ServerID: `{credit['serverid']}`\n"
+                else:
+                    embedStr += f"Key: `{credit['key']}` | Enabled: `False`\n"
+            await self.bot.sendSuccess(ctx, embedStr, ctx.message, ctx.guild)
+        except Exception as e:
+            print(e)
             await self.bot.sendError(ctx, f"{ctx.author.mention} has no credit(s).\n\n Use `{prefix}upgrade` to learn how to upgrade.", ctx.message, ctx.guild)
-    
+
     @commands.check(premium_admins)
     @commands.command(hidden=True)
     async def giftpremium(self, ctx, target: discord.Member, amount = 1):
@@ -155,14 +142,11 @@ class Credits(commands.Cog):
         # Check if thumbs up
         if reaction.emoji != "\U0001f44d":
             return await self.bot.sendError(ctx, "Command Cancelled", [ctx.message, initQuestion, message], ctx.guild)
-        try:
-            await self.bot.db.execute("INSERT INTO premium (userid, credits) VALUES ($1, $2);", target.id, amount) 
-        except:
-            await self.bot.db.execute("UPDATE premium SET credits = credits + $1 WHERE userid = $2;", amount, target.id)
-
-        newcredits = await self.bot.db.fetchrow("SELECT credits FROM premium WHERE userid = $1;", target.id)
-        newcredits = newcredits['credits']
-        await self.bot.sendSuccess(ctx, f"{target.mention} has received {amount} credits and now has {newcredits} credits.", [ctx.message, initQuestion, message], ctx.guild)
+        key = str(uuid.uuid4())
+        key = key.replace('-', '')
+        key = key[:10]
+        await self.bot.db.execute("INSERT INTO newpremium (userid, key) VALUES ($1, $2);", target.id, key) 
+        await self.bot.sendSuccess(ctx, f"{target.mention} has received a new credit with ID: `{key}`.", [ctx.message, initQuestion, message], ctx.guild)
     
     @credits.error
     @votes.error

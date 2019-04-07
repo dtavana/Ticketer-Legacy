@@ -55,21 +55,22 @@ class Information(commands.Cog):
                 guildid = person['guildid']
                 userid = person['userid']
                 added = person['added']
+                key = person['key']
                 user = self.bot.get_user(userid)
                 
                 logchan = self.bot.get_channel(self.PREMIUM_LOG_CHANNEL)
                 await self.bot.db.execute("DELETE FROM premiumqueue WHERE userid = $1", userid)
                 if user is None:
                     if added:
-                        await self.bot.sendNewTicket(logchan, f"`{userid}` had a credit added to their account")
+                        await self.bot.sendNewTicket(logchan, f"`{userid}` had a credit with id `{key}` added to their account")
                     else:
-                        await self.bot.sendNewTicket(logchan, f"`{userid}` had a credit removed from their account")
+                        await self.bot.sendNewTicket(logchan, f"`{userid}` had a credit with id `{key}` removed from their account")
                     continue
                 else:
                     if added:
-                        await self.bot.sendNewTicket(logchan, f"{user.mention} had a credit added to their account")
+                        await self.bot.sendNewTicket(logchan, f"{user.mention} had a credit with id `{key}` added to their account")
                     else:
-                        await self.bot.sendNewTicket(logchan, f"{user.mention} had a credit removed from their account")
+                        await self.bot.sendNewTicket(logchan, f"{user.mention} had a credit with id `{key}` removed from their account")
                 if added:
                     await self.bot.sendSuccess(user, f"You have had one premium credit added to your account! Use the `redeem` command to get started!")
                 else:
@@ -85,18 +86,19 @@ class Information(commands.Cog):
                 cur_votes = person['cur_votes']
                 userid = person['userid']
                 receiveCredit = person['receivecredit']
+                key = person['key']
                 user = self.bot.get_user(userid)
                 await self.bot.db.execute("DELETE FROM votesqueue WHERE userid = $1", userid)
                 logchan = self.bot.get_channel(self.VOTES_LOG_CHANNEL)
                 if user is None:
                     if receiveCredit:
-                        await self.bot.sendNewTicket(logchan, f"`{userid}` just received a credit for voting!")
+                        await self.bot.sendNewTicket(logchan, f"`{userid}` just received a credit with id `{key}` for voting!")
                     else:
                         await self.bot.sendNewTicket(logchan, f"`{userid}` just voted for Ticketer!")
                     continue
                 else:
                     if receiveCredit:
-                        await self.bot.sendNewTicket(logchan, f"{user.mention} just received a credit for voting!")
+                        await self.bot.sendNewTicket(logchan, f"{user.mention} just received a credit with id `{key}` for voting!")
                     else:
                         await self.bot.sendNewTicket(logchan, f"{user.mention} just voted for Ticketer!")
                 if receiveCredit:

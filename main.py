@@ -319,7 +319,7 @@ class Ticketer(commands.Bot):
                 print(f"Failed to load extensions {ext}")
                 print(f"{type(e).__name__}: {e}")
         super().run(cfg.token)
-
+    
     async def on_ready(self,):
         print("Bot loaded")
         print(f"Logged in as: {self.user}")

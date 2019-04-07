@@ -51,8 +51,6 @@ class Credits(commands.Cog):
         await self.bot.db.execute("UPDATE newpremium SET userid = $1 WHERE key = $2;", target.id, key)
         await self.bot.sendSuccess(ctx, f"{ctx.author.mention} has given {target.mention} their credit with id: `{key}`.", ctx.message, ctx.guild)
         
-
-    
     @commands.command()
     @commands.guild_only()
     async def redeem(self, ctx):
@@ -77,7 +75,7 @@ class Credits(commands.Cog):
                 # Check if thumbs up
                 if reaction.emoji != "\U0001f44d":
                     return await self.bot.sendError(ctx, "Command Cancelled", [ctx.message, initQuestion, message], ctx.guild)
-                await self.bot.db.execute("UPDATE newpremium SET enabled = TRUE, serverid = $1;", ctx.guild.id)
+                await self.bot.db.execute("UPDATE newpremium SET enabled = TRUE, serverid = $1 WHERE key = $2;", ctx.guild.id, sufficient['key'])
                 prefix = await self.bot.getPrefix(ctx.guild.id)
                 await self.bot.sendSuccess(ctx, f"`{ctx.guild}` now has premium enabled! Take a look at `{prefix}help` under the settings category in order to utilize premium fully!\n\nThank you for using Ticketer.", [ctx.message, initQuestion, message], ctx.guild)
             else:
@@ -117,7 +115,10 @@ class Credits(commands.Cog):
                     embedStr += f"Key: `{credit['key']}` | Enabled: `True` | ServerID: `{credit['serverid']}`\n"
                 else:
                     embedStr += f"Key: `{credit['key']}` | Enabled: `False`\n"
-            await self.bot.sendSuccess(ctx, embedStr, ctx.message, ctx.guild)
+            if embedStr:
+                await self.bot.sendSuccess(ctx, embedStr, ctx.message, ctx.guild)
+            else:
+                await self.bot.sendError(ctx, f"{ctx.author.mention} has no credit(s).\n\n Use `{prefix}upgrade` to learn how to upgrade.", ctx.message, ctx.guild)
         except Exception as e:
             print(e)
             await self.bot.sendError(ctx, f"{ctx.author.mention} has no credit(s).\n\n Use `{prefix}upgrade` to learn how to upgrade.", ctx.message, ctx.guild)
